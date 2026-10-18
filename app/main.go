@@ -61,8 +61,8 @@ func main() {
 		Name:     "Standblatt Print Agent",
 		Services: []application.Service{application.NewService(svc)},
 		Assets:   application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
-		Logger:   logger,
-		LogLevel: slog.LevelWarn, // Wails logs every asset request at info
+		// Wails logs every asset request at info.
+		Logger: slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: slog.LevelWarn})),
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID:               "ch.standblatt.printagent",
 			OnSecondInstanceLaunch: func(application.SecondInstanceData) { show(window) },
