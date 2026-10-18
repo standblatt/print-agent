@@ -9,11 +9,16 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/standblatt/print-agent/internal/agent"
 )
+
+// reported are the options the agent reports per printer: the ones an admin picks per document. Others, such as
+// fit-to-page, still work as free-text options of a print setting.
+var reported = []string{"InputSlot", "PageSize", "MediaType"}
 
 // CUPS prints through the CUPS command line tools.
 type CUPS struct {
@@ -46,7 +51,7 @@ func ParseOptions(out string) []agent.Option {
 	return opts
 }
 
-// Printers lists the local CUPS printers with their options.
+// Printers lists the local CUPS printers with their tray, paper size and media type options.
 func (c CUPS) Printers(ctx context.Context) ([]agent.Printer, error) {
 	out, err := exec.CommandContext(ctx, "lpstat", "-e").Output()
 	if err != nil {
@@ -58,7 +63,10 @@ func (c CUPS) Printers(ctx context.Context) ([]agent.Printer, error) {
 		if err != nil {
 			c.Log.Warn("lpoptions", "printer", name, "err", err)
 		}
-		printers = append(printers, agent.Printer{Name: name, Options: ParseOptions(string(opts))})
+		all := ParseOptions(string(opts))
+		printers = append(printers, agent.Printer{Name: name, Options: slices.DeleteFunc(all, func(o agent.Option) bool {
+			return !slices.Contains(reported, o.Name)
+		})})
 	}
 	return printers, nil
 }
