@@ -80,6 +80,8 @@ func main() {
 		window.Hide()
 		e.Cancel()
 	})
+	// macOS: a click on the Dock icon shows the hidden window.
+	app.Event.OnApplicationEvent(events.Mac.ApplicationShouldHandleReopen, func(*application.ApplicationEvent) { show(window) })
 	newTray(app, window, svc)
 	if err := app.Run(); err != nil {
 		logger.Error("app", "err", err)
