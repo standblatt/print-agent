@@ -56,13 +56,13 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: app/frontend/package-lock.json
-      - run: make app VERSION=$([ "$GITHUB_REF_TYPE" = tag ] && echo "$GITHUB_REF_NAME" || echo "${GITHUB_SHA::7}")
+      - run: make app-windows VERSION=$([ "$GITHUB_REF_TYPE" = tag ] && echo "$GITHUB_REF_NAME" || echo "${GITHUB_SHA::7}")
       - run: npm run check
         working-directory: app/frontend
       - uses: actions/upload-artifact@v7
         with:
           name: app
-          path: app/bin/
+          path: bin/standblatt-print-agent-app-*
           retention-days: 7
 
   # The app's Go code on Windows, where it runs.
@@ -78,7 +78,7 @@ jobs:
           go-version-file: app/go.mod
           cache-dependency-path: app/go.sum
       - run: go vet ./...
-      - run: go build -C .. -o app/bin/staticcheck.exe honnef.co/go/tools/cmd/staticcheck && bin/staticcheck ./...
+      - run: go build -C .. -o bin/staticcheck.exe honnef.co/go/tools/cmd/staticcheck && ../bin/staticcheck ./...
       - run: go test ./...
 
   # Known vulnerabilities in code paths we call; not a need of release, so a new report does not block releases.

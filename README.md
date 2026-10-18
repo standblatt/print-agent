@@ -57,11 +57,14 @@ options, waits for print jobs (long polling) and prints them. No port needs to b
 ## Development
 
 ```sh
-make build    # bin/: the agent for this computer and the Linux release binaries
-make app      # app/bin/: the desktop app for Windows (needs Node.js)
-make dev      # the desktop app in a window on this computer, rebuilt on changes (wails3 dev)
-make prepare  # gofmt, go vet, staticcheck, svelte-check, doc comments; before every commit
-make test     # Go tests and the contract test against the server image of the CI (needs Docker)
+make app-headless # bin/: the headless agent for this computer and the Linux release binaries
+make app          # bin/: the desktop app for this computer's operating system (needs Node.js)
+make app-windows  # bin/: the desktop app for Windows, also cross-compiled from macOS or Linux
+make app-mac      # bin/: the desktop app for this Mac as a bundle (signed ad hoc, runs only here)
+make app-linux    # bin/: the desktop app for Linux; on Linux with the GTK 4 and WebKitGTK 6.0 dev packages
+make dev          # the desktop app in a window on this computer, rebuilt on changes (wails3 dev)
+make prepare      # gofmt, go vet, staticcheck, svelte-check, doc comments; before every commit
+make test         # Go tests and the contract test against the server image of the CI (needs Docker)
 make clean
 ```
 

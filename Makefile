@@ -3,10 +3,41 @@ VERSION := $(shell git describe --tags --always --dirty 2>/dev/null)
 SERVER_VERSION := $(shell sed -n 's/^ *SERVER_VERSION: //p' .github/workflows/ci.yml)
 CONTRACT := standblatt-contract
 
-.PHONY: build app app-deps dev prepare test clean
+GOOS := $(shell go env GOOS)
+GOARCH := $(shell go env GOARCH)
+APP_LDFLAGS := -s -w -X main.version=$(VERSION)
+MAC_APP := Standblatt Print Agent.app
 
-# The headless agent for this computer and the Linux release binaries.
-build:
+# All builds go to bin/.
+.PHONY: app app-mac app-linux app-windows app-headless app-deps app-frontend dev prepare test clean
+
+# The desktop app for the operating system of this computer.
+app: app-$(subst darwin,mac,$(GOOS))
+
+# The desktop app for this Mac (CUPS backend) as a bundle, signed ad hoc so it runs here: bin/$(MAC_APP).
+app-mac: app-frontend
+	cd app && MACOSX_DEPLOYMENT_TARGET=12.0 CGO_CFLAGS=-mmacosx-version-min=12.0 CGO_LDFLAGS=-mmacosx-version-min=12.0 \
+		go build -tags production -trimpath -ldflags="$(APP_LDFLAGS)" -o ../bin/standblatt-print-agent-app-darwin-$(GOARCH) .
+	cd bin && rm -rf "$(MAC_APP)" && mkdir -p "$(MAC_APP)/Contents/MacOS" "$(MAC_APP)/Contents/Resources" && \
+		cp standblatt-print-agent-app-darwin-$(GOARCH) "$(MAC_APP)/Contents/MacOS/standblatt-print-agent" && \
+		cp ../app/build/darwin/icons.icns "$(MAC_APP)/Contents/Resources/" && \
+		sed 's/@VERSION@/$(VERSION)/' ../app/build/darwin/Info.plist > "$(MAC_APP)/Contents/Info.plist" && \
+		codesign --force --deep --sign - "$(MAC_APP)"
+
+# The desktop app for Linux (CUPS backend) on this architecture. It needs CGO with the GTK 4 and WebKitGTK 6.0
+# development packages, so it builds on Linux only.
+app-linux: app-frontend
+	cd app && CGO_ENABLED=1 go build -tags production -trimpath -ldflags="$(APP_LDFLAGS)" -o ../bin/standblatt-print-agent-app-linux-$(GOARCH) .
+
+# The desktop app for Windows (amd64), cross-compiled without CGO, with icon and manifest from a syso file.
+app-windows: app-frontend
+	cd app && go tool wails3 generate syso -arch amd64 -icon build/windows/icon.ico \
+		-manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_amd64.syso
+	cd app && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags production -trimpath -ldflags="$(APP_LDFLAGS) -H windowsgui" \
+		-o ../bin/standblatt-print-agent-app-windows-amd64.exe .; s=$$?; rm -f wails_windows_amd64.syso; exit $$s
+
+# The headless agent (CUPS) for this computer and the Linux release binaries.
+app-headless:
 	go build -ldflags="-X main.version=$(VERSION)" -o bin/standblatt-print-agent ./cmd/standblatt-print-agent
 	for arch in amd64 arm64; do \
 		CGO_ENABLED=0 GOOS=linux GOARCH=$$arch go build -trimpath -ldflags="-s -w -X main.version=$(VERSION)" \
@@ -18,14 +49,9 @@ app-deps:
 	cd app/frontend && npm install --no-audit --no-fund
 	cd app && go tool wails3 generate bindings -clean=true -ts -i
 
-# The desktop app for Windows, cross-compiled without CGO: frontend, icon and manifest (syso), exe.
-app: app-deps
+# The frontend the app embeds.
+app-frontend: app-deps
 	cd app/frontend && npm run build
-	cd app && go tool wails3 generate syso -arch amd64 -icon build/windows/icon.ico \
-		-manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_amd64.syso
-	cd app && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags production -trimpath \
-		-ldflags="-s -w -H windowsgui -X main.version=$(VERSION)" -o bin/standblatt-print-agent-windows-amd64.exe .; \
-		s=$$?; rm -f wails_windows_amd64.syso; exit $$s
 
 # The app in a window on this computer (CUPS backend, real config and printers) through wails3 dev: Vite serves the
 # frontend, Go changes in app/ rebuild and restart the app. A dev build never turns on autostart and logs to the

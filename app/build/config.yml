@@ -7,7 +7,6 @@ dev_mode:
     dir:
       - .git
       - frontend
-      - bin
     file:
       - .DS_Store
       - "*_test.go"
@@ -15,7 +14,7 @@ dev_mode:
       - "*.go"
     git_ignore: true
   executes:
-    - cmd: go build -o bin/dev .
+    - cmd: go build -o ../bin/dev .
       type: blocking
     - cmd: npm --prefix frontend run dev
       type: background
@@ -23,6 +22,6 @@ dev_mode:
         http: "http://127.0.0.1:9245/"
         timeout: "60s"
         interval: "200ms"
-    - cmd: bin/dev
+    - cmd: ../bin/dev
       type: primary
       exit_policy: shutdown
