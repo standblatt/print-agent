@@ -33,6 +33,9 @@ updates:
         update-types: [minor, patch]
     ignore:
       - dependency-name: "@wailsio/runtime"
+      # svelte-check supports TypeScript up to 6.
+      - dependency-name: typescript
+        versions: [">= 7"]
 
   - package-ecosystem: github-actions
     directory: /
