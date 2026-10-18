@@ -36,6 +36,9 @@ func TestParseOptions(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v", got)
 	}
+	if got := ParseOptions(""); got == nil || len(got) != 0 {
+		t.Fatalf("no options: %#v, want an empty slice", got)
+	}
 }
 
 func TestPrinters(t *testing.T) {

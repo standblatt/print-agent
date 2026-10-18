@@ -20,9 +20,10 @@ type CUPS struct {
 	Log *slog.Logger
 }
 
-// ParseOptions reads the output of `lpoptions -p <printer> -l`, e.g. "InputSlot/Media Source: Auto *Tray1 Tray2".
+// ParseOptions reads the output of `lpoptions -p <printer> -l`, e.g. "InputSlot/Media Source: Auto *Tray1 Tray2";
+// never nil, the server refuses null arrays.
 func ParseOptions(out string) []agent.Option {
-	var opts []agent.Option
+	opts := []agent.Option{}
 	sc := bufio.NewScanner(strings.NewReader(out))
 	for sc.Scan() {
 		head, values, ok := strings.Cut(sc.Text(), ":")

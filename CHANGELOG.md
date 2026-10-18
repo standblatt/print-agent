@@ -15,3 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contract test in CI: the agent runs against a pinned Standblatt server image and must report its printers; a wrong token must be refused (by @HB9HIL)
 - Makefile with `build`, `prepare`, `test` (Go tests and the contract test in Docker) and `clean` (by @HB9HIL)
 - Windows backend (`internal/winspool`) for the desktop app: printers, trays and papers from the spooler, PDFs rendered with PDFium in WebAssembly (no CGO, no helper program) and printed through GDI; options `bin`, `paper`, `duplex`, `scale` (default `noscale`) and `color`; Windows CI job that prints through Microsoft Print to PDF (by @HB9HIL)
+
+### Fixed
+- A CUPS printer without options no longer makes the server refuse the whole printer report (by @HB9HIL)
