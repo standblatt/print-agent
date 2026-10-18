@@ -241,3 +241,30 @@ func TestStatusHelloError(t *testing.T) {
 		t.Fatalf("a failing hello must stay visible while jobs work: %+v", st)
 	}
 }
+
+func TestStatusRightAfterHello(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/agent/hello" {
+			io.WriteString(w, `{"club":"C","range":"R","missingPrinters":[]}`)
+			return
+		}
+		<-r.Context().Done() // the long poll for jobs
+	}))
+	defer srv.Close()
+	a := newAgent(srv.URL, &fakeBackend{})
+	done := make(chan struct{})
+	go func() {
+		a.Run(ctx)
+		close(done)
+	}()
+	defer func() { cancel(); <-done }()
+	for deadline := time.Now().Add(time.Second); ; time.Sleep(5 * time.Millisecond) {
+		if st := a.Status(); !st.Contact.IsZero() && st.Info.Club == "C" && st.Err == "" {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no status while the first wait for jobs runs: %+v", a.Status())
+		}
+	}
+}

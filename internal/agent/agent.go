@@ -88,6 +88,23 @@ type JobResult struct {
 // keepJobs is how many jobs Status keeps.
 const keepJobs = 20
 
+// record notes the outcome of a request in the status: an answer of the server, even an error status, is contact.
+func (a *Agent) record(err error) {
+	a.update(func(s *Status) {
+		var he *HTTPError
+		if err == nil || errors.As(err, &he) {
+			s.Contact = time.Now()
+		}
+		s.Err, s.HTTPStatus = "", 0
+		if err != nil {
+			s.Err = err.Error()
+		}
+		if he != nil {
+			s.HTTPStatus = he.Status
+		}
+	})
+}
+
 // Status returns a copy of what Run last saw.
 func (a *Agent) Status() Status {
 	a.mu.Lock()
@@ -215,24 +232,14 @@ func (a *Agent) Run(ctx context.Context) {
 				lastHello = time.Now()
 				a.update(func(s *Status) { s.Info = info })
 			}
+			a.record(err)
 		}
 		j, err := a.Next(ctx)
 		if errors.Is(err, context.Canceled) {
 			return
 		}
-		a.update(func(s *Status) {
-			var he *HTTPError
-			if err == nil || errors.As(err, &he) {
-				s.Contact = time.Now()
-			}
-			s.Err, s.HTTPStatus = "", 0
-			if e := cmp.Or(helloErr, err); e != nil {
-				s.Err = e.Error()
-				if errors.As(e, &he) {
-					s.HTTPStatus = he.Status
-				}
-			}
-		})
+		// A failing hello stays visible while waiting for jobs works.
+		a.record(cmp.Or(err, helloErr))
 		if err != nil {
 			a.Log.Warn("waiting for jobs", "err", err, "retry", backoff)
 			select {
