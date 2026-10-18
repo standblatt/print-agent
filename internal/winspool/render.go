@@ -15,8 +15,8 @@ import (
 	"github.com/tetratelabs/wazero/experimental"
 )
 
-// Renderer renders PDF pages with PDFium in WebAssembly. Compiling the module takes seconds (about 15 s on an old
-// Xeon), so the code wazero compiles is kept in CacheDir and the app starts the renderer in the background.
+// Renderer renders PDF pages with PDFium in WebAssembly. Compiling the module takes up to several seconds, so the
+// code wazero compiles is kept in CacheDir and the app starts the renderer in the background.
 type Renderer struct {
 	CacheDir string // empty compiles on every start
 
