@@ -1,0 +1,6 @@
+#!/bin/sh
+# Fake CUPS lpoptions for tests, called as `lpoptions -p <printer> -l`.
+case "$2" in
+Office_A5) echo 'InputSlot/Media Source: *Auto Tray1 Tray2' ;;
+*) echo 'PageSize/Media Size: *29x90mm' ;;
+esac

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Fake CUPS lpstat for tests: two printers.
+echo 'Office_A5 Brother_QL'

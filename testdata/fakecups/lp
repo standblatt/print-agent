@@ -1,0 +1,6 @@
+#!/bin/sh
+# Fake CUPS lp for tests: appends the arguments and the first bytes of the file to $FAKECUPS_LOG.
+eval file=\${$#}
+echo "$@" >> "$FAKECUPS_LOG"
+head -c 5 "$file" >> "$FAKECUPS_LOG"
+echo >> "$FAKECUPS_LOG"
