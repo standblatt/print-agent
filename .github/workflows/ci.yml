@@ -50,7 +50,8 @@ jobs:
           - { name: windows-amd64, os: ubuntu-latest, target: app-windows, cgo: "0" }
           - { name: darwin-arm64, os: macos-latest, target: app-dmg, goarch: arm64 }
           - { name: darwin-amd64, os: macos-latest, target: app-dmg, goarch: amd64 }
-          - { name: linux-amd64, os: ubuntu-latest, target: app-linux-packages }
+          # Pinned: packages built on a newer Ubuntu need its newer glibc.
+          - { name: linux-amd64, os: ubuntu-24.04, target: app-linux-packages }
           - { name: linux-arm64, os: ubuntu-24.04-arm, target: app-linux-packages }
     runs-on: ${{ matrix.os }}
     steps:
