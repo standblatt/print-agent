@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Desktop app *Standblatt Print Agent* (`app/`, Wails 3, own Go module) for Windows: scaffold with a Svelte frontend in English, German, French and Italian, `make app` builds the exe without CGO; CI builds it and checks it on Windows (by @HB9HIL)
 - The app's core: it pairs ranges by code, keeps their tokens in a settings file only the user can read, runs an agent per range on the Windows spooler (CUPS on macOS), prints a local test page and logs to a file it rotates at 1 MB (by @HB9HIL)
 - The app's window: per range whether it prints (connected, printers missing, no connection, removed in Standblatt) with its last jobs, connecting a range by code with a button that opens Standblatt, the printers of the computer with a test page, and under *Advanced* start with the computer, the address of Standblatt and removing a range (by @HB9HIL)
+- The app lives in the system tray (green when every range prints, red otherwise, with *Open* and *Quit*), closing the window only hides it, a second start shows the window of the first, and on its first start it turns on starting with the computer, in the tray (by @HB9HIL)
 - The agent keeps a status for the desktop app: last contact, last error, the server's answer to hello and the last 20 jobs (by @HB9HIL)
 - Pairing by code in the agent package (`Agent.Pair`, `Agent.WaitPaired`) for the desktop app: the agent asks the server for a code, waits until a member confirms it on `/connect` and gets its token once (by @HB9HIL)
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { setLinguiContext } from 'lingui-for-svelte';
+	import { t } from 'lingui-for-svelte/macro';
 	import { onMount } from 'svelte';
 	import { Service, type State } from '$bindings/app';
 	import Advanced from '$lib/Advanced.svelte';
@@ -18,6 +19,7 @@
 		state = await Service.State();
 	}
 	onMount(() => {
+		Service.SetMenuLabels($t`Open`, $t`Quit`);
 		refresh();
 		const timer = setInterval(refresh, 2000);
 		return () => clearInterval(timer);

@@ -57,6 +57,10 @@ msgstr "Keine Drucker gefunden. Installiere zuerst den Drucker auf diesem Comput
 msgid "Only change it for a test server; connected ranges keep their address."
 msgstr "Nur für einen Testserver ändern; verbundene Schiessstände behalten ihre Adresse."
 
+#: src/App.svelte
+msgid "Open"
+msgstr "Öffnen"
+
 #: src/lib/Connect.svelte
 msgid "Open Standblatt"
 msgstr "Standblatt öffnen"
@@ -68,6 +72,10 @@ msgstr "Öffne Standblatt, melde dich an und bestätige diesen Code. Dieses Fens
 #: src/lib/Printers.svelte
 msgid "Printers of this computer"
 msgstr "Drucker dieses Computers"
+
+#: src/App.svelte
+msgid "Quit"
+msgstr "Beenden"
 
 #: src/lib/Advanced.svelte
 msgid "Ranges"

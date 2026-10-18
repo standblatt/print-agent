@@ -31,11 +31,12 @@ type Service struct {
 	Log        *slog.Logger
 	Autostart  *application.AutostartManager // nil in tests
 
-	mu      sync.Mutex
-	ctx     context.Context
-	cfg     Config
-	agents  map[string]running
-	pairing *pairing
+	OnMenuLabels func(open, quit string) // set by the tray
+	mu           sync.Mutex
+	ctx          context.Context
+	cfg          Config
+	agents       map[string]running
+	pairing      *pairing
 }
 
 // running is the agent of a range and the function that stops it.
@@ -112,7 +113,7 @@ func (s *Service) ServiceStartup(ctx context.Context, _ application.ServiceOptio
 			return err
 		}
 		if s.Autostart != nil {
-			if err := s.Autostart.Enable(); err != nil {
+			if err := s.enableAutostart(); err != nil {
 				s.Log.Warn("turn autostart on", "err", err)
 			}
 		}
@@ -272,10 +273,23 @@ func (s *Service) SetServer(server string) error {
 	return nil
 }
 
+// hiddenArg starts the app in the tray, as autostart does.
+const hiddenArg = "-hidden"
+
+// enableAutostart starts the app with the computer, in the tray.
+func (s *Service) enableAutostart() error {
+	return s.Autostart.EnableWithOptions(application.AutostartOptions{Arguments: []string{hiddenArg}})
+}
+
 // SetAutostart turns starting the app with the computer on or off.
 func (s *Service) SetAutostart(on bool) error {
 	if on {
-		return s.Autostart.Enable()
+		return s.enableAutostart()
 	}
 	return s.Autostart.Disable()
+}
+
+// SetMenuLabels sets the labels of the tray menu in the language of the window.
+func (s *Service) SetMenuLabels(open, quit string) {
+	s.OnMenuLabels(open, quit)
 }

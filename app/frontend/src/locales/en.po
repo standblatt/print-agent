@@ -57,6 +57,10 @@ msgstr "No printers found. Install the printer on this computer first."
 msgid "Only change it for a test server; connected ranges keep their address."
 msgstr "Only change it for a test server; connected ranges keep their address."
 
+#: src/App.svelte
+msgid "Open"
+msgstr "Open"
+
 #: src/lib/Connect.svelte
 msgid "Open Standblatt"
 msgstr "Open Standblatt"
@@ -68,6 +72,10 @@ msgstr "Open Standblatt, log in and confirm this code. This window switches by i
 #: src/lib/Printers.svelte
 msgid "Printers of this computer"
 msgstr "Printers of this computer"
+
+#: src/App.svelte
+msgid "Quit"
+msgstr "Quit"
 
 #: src/lib/Advanced.svelte
 msgid "Ranges"

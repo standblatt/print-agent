@@ -249,3 +249,15 @@ func TestHealth(t *testing.T) {
 		}
 	}
 }
+
+func TestAllOK(t *testing.T) {
+	ok, missing := RangeState{Health: "ok"}, RangeState{Health: "missing"}
+	for _, c := range []struct {
+		ranges []RangeState
+		want   bool
+	}{{nil, false}, {[]RangeState{ok}, true}, {[]RangeState{ok, ok}, true}, {[]RangeState{ok, missing}, false}} {
+		if got := allOK(State{Ranges: c.ranges}); got != c.want {
+			t.Errorf("%v: %v", c.ranges, got)
+		}
+	}
+}
