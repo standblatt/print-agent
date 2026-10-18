@@ -13,6 +13,123 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/App.svelte
-msgid "Prints the documents of your range on the printers of this computer."
-msgstr "Druckt die Dokumente deines Schiessstands auf den Druckern dieses Computers."
+#: src/lib/Advanced.svelte
+msgid "Address of Standblatt"
+msgstr "Adresse von Standblatt"
+
+#: src/lib/Advanced.svelte
+msgid "Advanced"
+msgstr "Erweitert"
+
+#: src/lib/Connect.svelte
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: src/lib/Connect.svelte
+msgid "Connect a range"
+msgstr "Schiessstand verbinden"
+
+#: src/lib/Connect.svelte
+msgid "Connect another range"
+msgstr "Weiteren Schiessstand verbinden"
+
+#: src/lib/RangeCard.svelte
+msgid "Connected, but these printers of the printing setup are not on this computer: {missing}."
+msgstr "Verbunden, aber diese Drucker aus der Druckeinrichtung fehlen auf diesem Computer: {missing}."
+
+#: src/lib/RangeCard.svelte
+msgid "Connected. The documents of this range print here."
+msgstr "Verbunden. Die Dokumente dieses Schiessstands werden hier gedruckt."
+
+#: src/lib/RangeCard.svelte
+msgid "Connecting to Standblatt…"
+msgstr "Verbinde mit Standblatt…"
+
+#: src/lib/RangeCard.svelte
+msgid "No connection to Standblatt. Check the internet connection; the app keeps trying."
+msgstr "Keine Verbindung zu Standblatt. Prüfe die Internetverbindung; die App versucht es weiter."
+
+#: src/lib/Printers.svelte
+msgid "No printers found. Install the printer on this computer first."
+msgstr "Keine Drucker gefunden. Installiere zuerst den Drucker auf diesem Computer."
+
+#: src/lib/Advanced.svelte
+msgid "Only change it for a test server; connected ranges keep their address."
+msgstr "Nur für einen Testserver ändern; verbundene Schiessstände behalten ihre Adresse."
+
+#: src/lib/Connect.svelte
+msgid "Open Standblatt"
+msgstr "Standblatt öffnen"
+
+#: src/lib/Connect.svelte
+msgid "Open Standblatt, log in and confirm this code. This window switches by itself as soon as you have confirmed it."
+msgstr "Öffne Standblatt, melde dich an und bestätige diesen Code. Dieses Fenster wechselt von selbst, sobald du ihn bestätigt hast."
+
+#: src/lib/Printers.svelte
+msgid "Printers of this computer"
+msgstr "Drucker dieses Computers"
+
+#: src/lib/Advanced.svelte
+msgid "Ranges"
+msgstr "Schiessstände"
+
+#: src/lib/Advanced.svelte
+msgid "Really remove?"
+msgstr "Wirklich entfernen?"
+
+#: src/lib/Advanced.svelte
+msgid "Recommended: jobs print as soon as the computer is on."
+msgstr "Empfohlen: Druckaufträge kommen, sobald der Computer läuft."
+
+#: src/lib/Printers.svelte
+msgid "Refresh"
+msgstr "Aktualisieren"
+
+#: src/lib/Advanced.svelte
+msgid "Remove"
+msgstr "Entfernen"
+
+#: src/lib/Advanced.svelte
+msgid "Removing stops printing on this computer. Delete the print agent in Standblatt as well."
+msgstr "Entfernen beendet das Drucken auf diesem Computer. Lösche den Druck-Agent auch in Standblatt."
+
+#: src/lib/Advanced.svelte
+msgid "Save"
+msgstr "Speichern"
+
+#: src/lib/Advanced.svelte
+msgid "Saved."
+msgstr "Gespeichert."
+
+#: src/lib/Printers.svelte
+msgid "Sent to the printer"
+msgstr "An den Drucker gesendet"
+
+#: src/lib/Connect.svelte
+msgid "Standblatt cannot be reached. Check the internet connection and try again."
+msgstr "Standblatt ist nicht erreichbar. Prüfe die Internetverbindung und versuche es nochmals."
+
+#: src/lib/Advanced.svelte
+msgid "Start with the computer"
+msgstr "Mit dem Computer starten"
+
+#: src/lib/Printers.svelte
+msgid "Test page"
+msgstr "Testseite"
+
+#: src/lib/Connect.svelte
+msgid "The code expired. Get a new one."
+msgstr "Der Code ist abgelaufen. Hol dir einen neuen."
+
+#: src/lib/Connect.svelte
+msgid "This computer does not print for any range yet. Connect it with a range of your club in Standblatt; you need the permission to manage ranges there."
+msgstr "Dieser Computer druckt noch für keinen Schiessstand. Verbinde ihn mit einem Schiessstand deines Vereins in Standblatt; dazu brauchst du dort das Recht, Schiessstände zu verwalten."
+
+#: src/lib/RangeCard.svelte
+msgid "This computer was removed from the range in Standblatt. Remove the range under Advanced and connect it again."
+msgstr "Dieser Computer wurde in Standblatt vom Schiessstand entfernt. Entferne den Schiessstand unter «Erweitert» und verbinde ihn neu."
+
+#. placeholder {0}: settings?.version ?? ''
+#: src/lib/Advanced.svelte
+msgid "Version {0}"
+msgstr "Version {0}"

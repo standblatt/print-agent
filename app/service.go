@@ -62,7 +62,28 @@ type RangeState struct {
 	Club   string       `json:"club"`
 	Range  string       `json:"range"`
 	Server string       `json:"server"`
+	Health string       `json:"health"` // see health
 	Status agent.Status `json:"status"`
+}
+
+// offlineAfter is how long without an answer of the server counts as offline; the server answers a wait for jobs
+// within 25 s.
+const offlineAfter = 90 * time.Second
+
+// health sums a status up for the window: removed (the server refuses the token), offline (an error, or no answer
+// for offlineAfter), starting (no answer yet), missing (printers of the printing setup not found) or ok.
+func health(s agent.Status, now time.Time) string {
+	switch {
+	case s.HTTPStatus == http.StatusUnauthorized:
+		return "removed"
+	case s.Err != "" || !s.Contact.IsZero() && now.Sub(s.Contact) > offlineAfter:
+		return "offline"
+	case s.Contact.IsZero():
+		return "starting"
+	case len(s.Info.MissingPrinters) > 0:
+		return "missing"
+	}
+	return "ok"
 }
 
 // PairingState is a pairing in progress: the code to confirm on the server, or why it ended without a range.
@@ -73,10 +94,11 @@ type PairingState struct {
 	Err     string `json:"err"`
 }
 
-// Settings are the settings the user can change.
+// Settings are the settings the user can change, and the app's version.
 type Settings struct {
 	Server    string `json:"server"`
 	Autostart bool   `json:"autostart"`
+	Version   string `json:"version"`
 }
 
 // ServiceStartup loads the config and starts an agent per range; on the first start it turns autostart on.
@@ -123,7 +145,8 @@ func (s *Service) State() State {
 	defer s.mu.Unlock()
 	st := State{Ranges: []RangeState{}}
 	for _, r := range s.cfg.Ranges {
-		st.Ranges = append(st.Ranges, RangeState{ID: r.ID, Club: r.Club, Range: r.Range, Server: r.Server, Status: s.agents[r.ID].Status()})
+		as := s.agents[r.ID].Status()
+		st.Ranges = append(st.Ranges, RangeState{ID: r.ID, Club: r.Club, Range: r.Range, Server: r.Server, Health: health(as, time.Now()), Status: as})
 	}
 	if s.pairing != nil {
 		p := s.pairing.PairingState
@@ -217,17 +240,19 @@ func (s *Service) TestPage(printer string) error {
 	return s.Backend.Print(s.ctx, &agent.Job{Title: "Standblatt test page", Printer: printer, Options: map[string]string{}, PDF: pdf})
 }
 
-// Settings returns the server for new pairings and whether the app starts with the computer.
-func (s *Service) Settings() (Settings, error) {
+// Settings returns the server for new pairings, whether the app starts with the computer and the app's version.
+func (s *Service) Settings() Settings {
 	s.mu.Lock()
-	st := Settings{Server: s.cfg.Server}
+	st := Settings{Server: s.cfg.Server, Version: s.Version}
 	s.mu.Unlock()
-	if s.Autostart == nil {
-		return st, nil
+	if s.Autostart != nil {
+		on, err := s.Autostart.IsEnabled()
+		if err != nil {
+			s.Log.Warn("autostart status", "err", err)
+		}
+		st.Autostart = on
 	}
-	var err error
-	st.Autostart, err = s.Autostart.IsEnabled()
-	return st, err
+	return st
 }
 
 // SetServer sets the server new ranges are paired with; connected ranges keep theirs.

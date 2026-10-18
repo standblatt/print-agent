@@ -117,7 +117,7 @@ func TestServicePairingAndPrinting(t *testing.T) {
 	dir := t.TempDir()
 	b := &fakeBackend{}
 	s := newService(t, dir, b)
-	if st, _ := s.Settings(); st.Server != defaultServer {
+	if st := s.Settings(); st.Server != defaultServer || st.Version != "v9" {
 		t.Fatalf("default server %q", st.Server)
 	}
 	if err := s.SetServer(srv.URL + "/"); err != nil {
@@ -139,7 +139,7 @@ func TestServicePairingAndPrinting(t *testing.T) {
 	}
 	eventually(t, "the status", func() bool { return len(s.State().Ranges[0].Status.Jobs) == 1 })
 	r := s.State().Ranges[0]
-	if r.Club != "SG Testdorf" || r.Range != "25 m" || r.Server != srv.URL || r.Status.Info.MissingPrinters[0] != "Label" || r.Status.Err != "" {
+	if r.Club != "SG Testdorf" || r.Range != "25 m" || r.Server != srv.URL || r.Health != "missing" || r.Status.Info.MissingPrinters[0] != "Label" || r.Status.Err != "" {
 		t.Fatalf("range %+v", r)
 	}
 
@@ -227,5 +227,25 @@ func TestServiceBrokenConfig(t *testing.T) {
 	s := &Service{ConfigPath: filepath.Join(dir, "print-agent.json"), Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 	if err := s.ServiceStartup(context.Background(), application.ServiceOptions{}); err == nil || !strings.Contains(err.Error(), "print-agent.json") {
 		t.Fatalf("got %v", err)
+	}
+}
+
+func TestHealth(t *testing.T) {
+	now := time.Now()
+	for _, c := range []struct {
+		s    agent.Status
+		want string
+	}{
+		{agent.Status{}, "starting"},
+		{agent.Status{Contact: now}, "ok"},
+		{agent.Status{Contact: now, Info: agent.Info{MissingPrinters: []string{"Label"}}}, "missing"},
+		{agent.Status{Contact: now.Add(-2 * time.Minute)}, "offline"},
+		{agent.Status{Err: "dial tcp: no such host"}, "offline"},
+		{agent.Status{Contact: now, Err: "422", HTTPStatus: 422}, "offline"},
+		{agent.Status{Contact: now, Err: "401", HTTPStatus: 401}, "removed"},
+	} {
+		if got := health(c.s, now); got != c.want {
+			t.Errorf("%+v: %s, want %s", c.s, got, c.want)
+		}
 	}
 }

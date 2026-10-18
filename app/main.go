@@ -52,7 +52,8 @@ func main() {
 		Name:     "Standblatt Print Agent",
 		Services: []application.Service{application.NewService(svc)},
 		Assets:   application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
-		Logger:   logger,
+		// Wails logs every asset request at info.
+		Logger: slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{Level: slog.LevelWarn})),
 	})
 	svc.Autostart = app.Autostart
 	app.Window.NewWithOptions(application.WebviewWindowOptions{

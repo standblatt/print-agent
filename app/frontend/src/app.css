@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'shadcn-svelte/tailwind.css';
 @import '@fontsource-variable/inter';
 
 /* Colours and tokens of the Standblatt web app (server web/src/app.css); dark follows the OS. */

@@ -6,6 +6,6 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	server: { host: '127.0.0.1', port: Number(process.env.WAILS_VITE_PORT) || 9245, strictPort: true },
-	resolve: { alias: { $lib: '/src/lib', $locales: '/src/locales' } },
+	resolve: { alias: { $lib: '/src/lib', $locales: '/src/locales', $bindings: '/bindings/github.com/standblatt/print-agent' } },
 	plugins: [linguiMacro(), linguiForSvelte(), tailwindcss(), svelte()]
 });
