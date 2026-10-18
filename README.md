@@ -4,9 +4,23 @@ The print agent is a small program on a computer next to the printers of a shoot
 HTTPS requests to [Standblatt](https://github.com/standblatt/server): it reports the local printers and their
 options, waits for print jobs (long polling) and prints them. No port needs to be opened at the range.
 
-## Linux (CUPS)
+## Desktop app
 
-1. In Standblatt, **Ranges → Printing → Add print agent**; copy the token (shown only once).
+*Standblatt Print Agent* for the computer next to the printers, from the
+[latest release](https://github.com/standblatt/print-agent/releases/latest):
+
+- Windows: `standblatt-print-agent-app-windows-amd64.exe`. It is not signed yet: Windows SmartScreen asks once,
+  *More info → Run anyway*.
+- macOS: `standblatt-print-agent-app-darwin-arm64.dmg` (Apple silicon) or `-amd64.dmg` (Intel); drag the app into
+  *Applications*. It is not signed yet: open it the first time with *right click → Open*.
+- Linux: `standblatt-print-agent-app_<version>_<arch>.deb` or the `.rpm`.
+
+Start it, click *Connect a range* and confirm the code it shows in Standblatt. `SHA256SUMS` in the release lists the
+checksums of all files.
+
+## Headless agent for Linux (CUPS)
+
+1. In Standblatt, **Ranges → Set up the printers → Add print agent**; copy the token (shown only once).
 2. Download `standblatt-print-agent-linux-amd64` or `-arm64` from the
    [latest release](https://github.com/standblatt/print-agent/releases/latest) and install it as a systemd service:
 
@@ -61,7 +75,9 @@ make app-headless # bin/: the headless agent for this computer and the Linux rel
 make app          # bin/: the desktop app for this computer's operating system (needs Node.js)
 make app-windows  # bin/: the desktop app for Windows, also cross-compiled from macOS or Linux
 make app-mac      # bin/: the desktop app for this Mac as a bundle (signed ad hoc, runs only here)
+make app-dmg      # bin/: that bundle as a disk image (GOARCH=amd64 for Intel Macs)
 make app-linux    # bin/: the desktop app for Linux; on Linux with the GTK 4 and WebKitGTK 6.0 dev packages
+make app-linux-packages # bin/: that app as .deb and .rpm (needs fpm)
 make dev          # the desktop app in a window on this computer, rebuilt on changes (wails3 dev)
 make prepare      # gofmt, go vet, staticcheck, svelte-check, doc comments; before every commit
 make test         # Go tests and the contract test against the server image of the CI (needs Docker)

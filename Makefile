@@ -7,16 +7,19 @@ GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 APP_LDFLAGS := -s -w -X main.version=$(VERSION)
 MAC_APP := Standblatt Print Agent.app
+# Package version: a release tag without the v, else 0.0.0.
+PKG_VERSION := $(or $(shell echo $(VERSION) | sed -n 's/^v\([0-9][0-9.]*\)$$/\1/p'),0.0.0)
 
 # All builds go to bin/.
-.PHONY: app app-mac app-linux app-windows app-headless app-deps app-frontend dev prepare test clean
+.PHONY: app app-mac app-dmg app-linux app-linux-packages app-windows app-headless app-deps app-frontend dev prepare test clean
 
 # The desktop app for the operating system of this computer.
 app: app-$(subst darwin,mac,$(GOOS))
 
 # The desktop app for this Mac (CUPS backend) as a bundle, signed ad hoc so it runs here: bin/$(MAC_APP).
+# GOARCH=amd64 builds it for Intel Macs.
 app-mac: app-frontend
-	cd app && MACOSX_DEPLOYMENT_TARGET=12.0 CGO_CFLAGS=-mmacosx-version-min=12.0 CGO_LDFLAGS=-mmacosx-version-min=12.0 \
+	cd app && CGO_ENABLED=1 MACOSX_DEPLOYMENT_TARGET=12.0 CGO_CFLAGS=-mmacosx-version-min=12.0 CGO_LDFLAGS=-mmacosx-version-min=12.0 \
 		go build -tags production -trimpath -ldflags="$(APP_LDFLAGS)" -o ../bin/standblatt-print-agent-app-darwin-$(GOARCH) .
 	cd bin && rm -rf "$(MAC_APP)" && mkdir -p "$(MAC_APP)/Contents/MacOS" "$(MAC_APP)/Contents/Resources" && \
 		cp standblatt-print-agent-app-darwin-$(GOARCH) "$(MAC_APP)/Contents/MacOS/standblatt-print-agent" && \
@@ -24,10 +27,33 @@ app-mac: app-frontend
 		sed 's/@VERSION@/$(VERSION)/' ../app/build/darwin/Info.plist > "$(MAC_APP)/Contents/Info.plist" && \
 		codesign --force --deep --sign - "$(MAC_APP)"
 
+# The Mac app as a disk image with a link to Applications to drag it into.
+app-dmg: app-mac
+	rm -rf bin/dmg && mkdir bin/dmg && cp -R "bin/$(MAC_APP)" bin/dmg/ && ln -s /Applications bin/dmg/Applications
+	hdiutil create -volname "Standblatt Print Agent" -srcfolder bin/dmg -ov -format UDZO \
+		bin/standblatt-print-agent-app-darwin-$(GOARCH).dmg
+	rm -rf bin/dmg
+
 # The desktop app for Linux (CUPS backend) on this architecture. It needs CGO with the GTK 4 and WebKitGTK 6.0
 # development packages, so it builds on Linux only.
 app-linux: app-frontend
 	cd app && CGO_ENABLED=1 go build -tags production -trimpath -ldflags="$(APP_LDFLAGS)" -o ../bin/standblatt-print-agent-app-linux-$(GOARCH) .
+
+# The Linux app as .deb and .rpm (with fpm): binary, menu entry and icon.
+app-linux-packages: app-linux
+	rm -rf bin/pkg && mkdir -p bin/pkg/usr/bin bin/pkg/usr/share/applications bin/pkg/usr/share/icons/hicolor/512x512/apps
+	cp bin/standblatt-print-agent-app-linux-$(GOARCH) bin/pkg/usr/bin/standblatt-print-agent-app
+	cp app/build/linux/standblatt-print-agent.desktop bin/pkg/usr/share/applications/
+	cp app/build/appicon.png bin/pkg/usr/share/icons/hicolor/512x512/apps/standblatt-print-agent.png
+	for t in deb rpm; do \
+		if [ $$t = deb ]; then deps="-d libgtk-4-1 -d libwebkitgtk-6.0-4 -d cups-client"; \
+		else deps="-d gtk4 -d webkitgtk6.0 -d cups-client"; fi; \
+		fpm -s dir -t $$t -f -C bin/pkg -n standblatt-print-agent-app -v $(PKG_VERSION) -a $(GOARCH) $$deps \
+			--license AGPL-3.0 --url https://github.com/standblatt/print-agent --maintainer "Standblatt" \
+			--description "Prints the documents of a Standblatt range on the printers of this computer." \
+			-p bin/ usr || exit 1; \
+	done
+	rm -rf bin/pkg
 
 # The desktop app for Windows (amd64), cross-compiled without CGO, with icon and manifest from a syso file.
 app-windows: app-frontend
@@ -44,10 +70,11 @@ app-headless:
 			-o bin/standblatt-print-agent-linux-$$arch ./cmd/standblatt-print-agent || exit 1; \
 	done
 
-# Frontend packages and the TypeScript bindings of the app's Go services.
+# Frontend packages and the TypeScript bindings of the app's Go services; the wails3 tool runs here, whatever GOOS
+# and GOARCH a build is for.
 app-deps:
 	cd app/frontend && npm install --no-audit --no-fund
-	cd app && go tool wails3 generate bindings -clean=true -ts -i
+	cd app && GOOS= GOARCH= go tool wails3 generate bindings -clean=true -ts -i
 
 # The frontend the app embeds.
 app-frontend: app-deps

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Standblatt Print Agent
+Comment=Prints the documents of a Standblatt range on the printers of this computer
+Exec=/usr/bin/standblatt-print-agent-app
+Icon=standblatt-print-agent
+Categories=Office;Utility;
