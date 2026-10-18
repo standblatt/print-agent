@@ -62,7 +62,21 @@ type Agent struct {
 	Log     *slog.Logger
 }
 
-// request sends an authenticated request with an optional JSON body; status codes of 300 and above become errors.
+// HTTPError is an answer of the server with a status code of 300 or above.
+type HTTPError struct {
+	Method, Path string
+	Status       int
+	StatusText   string
+	Body         string
+}
+
+// Error tells the request, the status and the server's message.
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("%s %s: %s %s", e.Method, e.Path, e.StatusText, e.Body)
+}
+
+// request sends a request with an optional JSON body, with the agent token when there is one; status codes of 300
+// and above become an *HTTPError.
 func (a *Agent) request(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	var r io.Reader
 	if body != nil {
@@ -76,7 +90,9 @@ func (a *Agent) request(ctx context.Context, method, path string, body any) (*ht
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+a.Token)
+	if a.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+a.Token)
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -87,7 +103,7 @@ func (a *Agent) request(ctx context.Context, method, path string, body any) (*ht
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		return nil, fmt.Errorf("%s %s: %s %s", method, path, resp.Status, strings.TrimSpace(string(b)))
+		return nil, &HTTPError{Method: method, Path: path, Status: resp.StatusCode, StatusText: resp.Status, Body: strings.TrimSpace(string(b))}
 	}
 	return resp, nil
 }
