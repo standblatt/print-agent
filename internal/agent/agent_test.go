@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -145,9 +147,15 @@ func TestRun(t *testing.T) {
 	}))
 	defer srv.Close()
 	b := &fakeBackend{}
-	newAgent(srv.URL, b).Run(ctx)
+	a := newAgent(srv.URL, b)
+	a.Run(ctx)
 	if !errors.Is(ctx.Err(), context.Canceled) {
 		t.Fatal("run did not finish both jobs in time")
+	}
+	st := a.Status()
+	if st.Err != "" || time.Since(st.Contact) > time.Second || st.Info.Club != "C" || st.Info.Range != "R" || len(st.Jobs) != 2 ||
+		st.Jobs[0].ID != 2 || st.Jobs[0].Err != "paper jam" || st.Jobs[1].ID != 1 || st.Jobs[1].Err != "" || st.Jobs[1].Title != "ok" {
+		t.Fatalf("status %+v", st)
 	}
 	if len(b.printed) != 2 {
 		t.Fatalf("printed: %v", b.printed)
@@ -167,8 +175,9 @@ func TestRunStopsWhileBackingOff(t *testing.T) {
 	defer srv.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
+	a := newAgent(srv.URL, &fakeBackend{})
 	go func() {
-		newAgent(srv.URL, &fakeBackend{}).Run(ctx)
+		a.Run(ctx)
 		close(done)
 	}()
 	time.Sleep(100 * time.Millisecond)
@@ -177,5 +186,58 @@ func TestRunStopsWhileBackingOff(t *testing.T) {
 	case <-done:
 	case <-time.After(time.Second):
 		t.Fatal("run did not stop during backoff")
+	}
+	if st := a.Status(); !strings.Contains(st.Err, "down") || st.HTTPStatus != http.StatusBadGateway || st.Contact.IsZero() {
+		t.Fatalf("status %+v", st)
+	}
+}
+
+func TestStatusKeepsLastJobs(t *testing.T) {
+	var next atomic.Int64
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/agent/hello":
+			io.WriteString(w, `{"club":"C","range":"R","missingPrinters":[]}`)
+		case "/api/agent/jobs/next":
+			if id := next.Add(1); id <= keepJobs+5 {
+				fmt.Fprintf(w, `{"id":%d,"title":"t","printer":"Office"}`, id)
+				return
+			}
+			cancel()
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	defer srv.Close()
+	a := newAgent(srv.URL, &fakeBackend{})
+	a.Run(ctx)
+	jobs := a.Status().Jobs
+	if len(jobs) != keepJobs || jobs[0].ID != keepJobs+5 || jobs[keepJobs-1].ID != 6 {
+		t.Fatalf("%d jobs, first %d, last %d", len(jobs), jobs[0].ID, jobs[len(jobs)-1].ID)
+	}
+}
+
+func TestStatusHelloError(t *testing.T) {
+	var polls atomic.Int32
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/agent/hello" {
+			http.Error(w, "version is required", http.StatusUnprocessableEntity)
+			return
+		}
+		if polls.Add(1) == 2 {
+			cancel()
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+	a := newAgent(srv.URL, &fakeBackend{})
+	a.Run(ctx)
+	if st := a.Status(); !strings.Contains(st.Err, "version is required") || st.HTTPStatus != http.StatusUnprocessableEntity || st.Contact.IsZero() {
+		t.Fatalf("a failing hello must stay visible while jobs work: %+v", st)
 	}
 }

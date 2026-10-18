@@ -4,6 +4,7 @@ package agent
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -60,6 +62,46 @@ type Agent struct {
 	Backend Backend
 	Client  *http.Client
 	Log     *slog.Logger
+
+	mu     sync.Mutex
+	status Status
+}
+
+// Status is what Run last saw, for the desktop app to show.
+type Status struct {
+	Contact    time.Time   `json:"contact"`    // last answer of the server
+	Err        string      `json:"err"`        // last error of hello or waiting for jobs, empty when both work
+	HTTPStatus int         `json:"httpStatus"` // status code of Err, 0 for none or a network error
+	Info       Info        `json:"info"`       // last answer to hello
+	Jobs       []JobResult `json:"jobs"`       // the last jobs, newest first
+}
+
+// JobResult is a job Run printed or failed to print.
+type JobResult struct {
+	ID      int64     `json:"id"`
+	Title   string    `json:"title"`
+	Printer string    `json:"printer"`
+	At      time.Time `json:"at"`
+	Err     string    `json:"err"`
+}
+
+// keepJobs is how many jobs Status keeps.
+const keepJobs = 20
+
+// Status returns a copy of what Run last saw.
+func (a *Agent) Status() Status {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	s := a.status
+	s.Jobs = append([]JobResult{}, s.Jobs...)
+	return s
+}
+
+// update changes the status under the lock.
+func (a *Agent) update(f func(s *Status)) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	f(&a.status)
 }
 
 // HTTPError is an answer of the server with a status code of 300 or above.
@@ -162,20 +204,36 @@ func (a *Agent) Finish(ctx context.Context, id int64, printErr error) error {
 // Run reports the printers every five minutes and prints jobs until ctx ends.
 func (a *Agent) Run(ctx context.Context) {
 	lastHello := time.Time{}
+	var helloErr error
 	backoff := time.Second
 	for ctx.Err() == nil {
 		if time.Since(lastHello) > 5*time.Minute {
-			if _, err := a.Hello(ctx); err != nil {
+			info, err := a.Hello(ctx)
+			if helloErr = err; err != nil {
 				a.Log.Warn("report printers", "err", err)
 			} else {
 				lastHello = time.Now()
+				a.update(func(s *Status) { s.Info = info })
 			}
 		}
 		j, err := a.Next(ctx)
-		if err != nil {
-			if errors.Is(err, context.Canceled) {
-				return
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		a.update(func(s *Status) {
+			var he *HTTPError
+			if err == nil || errors.As(err, &he) {
+				s.Contact = time.Now()
 			}
+			s.Err, s.HTTPStatus = "", 0
+			if e := cmp.Or(helloErr, err); e != nil {
+				s.Err = e.Error()
+				if errors.As(e, &he) {
+					s.HTTPStatus = he.Status
+				}
+			}
+		})
+		if err != nil {
 			a.Log.Warn("waiting for jobs", "err", err, "retry", backoff)
 			select {
 			case <-ctx.Done():
@@ -195,6 +253,11 @@ func (a *Agent) Run(ctx context.Context) {
 		} else {
 			a.Log.Info("printed", "job", j.ID, "printer", j.Printer, "title", j.Title)
 		}
+		r := JobResult{ID: j.ID, Title: j.Title, Printer: j.Printer, At: time.Now()}
+		if printErr != nil {
+			r.Err = printErr.Error()
+		}
+		a.update(func(s *Status) { s.Jobs = append([]JobResult{r}, s.Jobs[:min(len(s.Jobs), keepJobs-1)]...) })
 		if err := a.Finish(ctx, j.ID, printErr); err != nil {
 			a.Log.Warn("report job", "job", j.ID, "err", err)
 		}
