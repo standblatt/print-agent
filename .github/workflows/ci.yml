@@ -27,6 +27,18 @@ jobs:
       - run: go tool staticcheck ./...
       - run: go test ./...
 
+  # The Windows backend against the spooler of a real Windows; it prints into a file through Microsoft Print to PDF.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: go tool staticcheck ./...
+      - run: go test ./internal/agent ./internal/winspool
+
   # Known vulnerabilities in code paths we call; not a need of release, so a new report does not block releases.
   govulncheck:
     runs-on: ubuntu-latest
@@ -95,7 +107,7 @@ jobs:
   # A GitHub release with the changelog section of the version, the binaries and their checksums.
   release:
     runs-on: ubuntu-latest
-    needs: [go, funcdoc, build, contract]
+    needs: [go, windows, funcdoc, build, contract]
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write

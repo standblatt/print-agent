@@ -13,11 +13,14 @@ build:
 			-o bin/standblatt-print-agent-linux-$$arch ./cmd/standblatt-print-agent || exit 1; \
 	done
 
-# Everything to check before a commit: gofmt, go vet, staticcheck, doc comments.
+# Everything to check before a commit: gofmt, go vet and staticcheck (also for Windows), doc comments.
 prepare:
 	@test -z "$$(gofmt -l .)" || { gofmt -l .; echo "gofmt: files above need formatting"; exit 1; }
 	go vet ./...
+	GOOS=windows go vet ./...
 	go tool staticcheck ./...
+	go build -o bin/staticcheck honnef.co/go/tools/cmd/staticcheck
+	GOOS=windows bin/staticcheck ./...
 	python3 scripts/funcdoc.py
 	@git status --short
 

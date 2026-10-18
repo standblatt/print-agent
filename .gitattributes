@@ -1,0 +1,2 @@
+# Binary test fixtures must keep their bytes (Windows runners convert line endings).
+*.pdf binary
