@@ -13,3 +13,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Headless agent `standblatt-print-agent`, configured by `STANDBLATT_URL` and `STANDBLATT_AGENT_TOKEN` (by @HB9HIL)
 - CI with gofmt, vet, staticcheck, govulncheck, doc comment check and tests; releases carry the Linux binaries (amd64, arm64) and `SHA256SUMS` (by @HB9HIL)
 - Contract test in CI: the agent runs against a pinned Standblatt server image and must report its printers; a wrong token must be refused (by @HB9HIL)
+- Makefile with `build`, `prepare`, `test` (Go tests and the contract test in Docker) and `clean` (by @HB9HIL)

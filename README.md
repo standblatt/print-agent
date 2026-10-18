@@ -57,10 +57,10 @@ options, waits for print jobs (long polling) and prints them. No port needs to b
 ## Development
 
 ```sh
-go test ./...
-go vet ./...
-go tool staticcheck ./...
-python3 scripts/funcdoc.py
+make build    # bin/: the agent for this computer and the Linux release binaries
+make prepare  # gofmt, go vet, staticcheck, doc comments; before every commit
+make test     # Go tests and the contract test against the server image of the CI (needs Docker)
+make clean
 ```
 
 ## License
