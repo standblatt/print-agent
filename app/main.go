@@ -5,6 +5,11 @@ package main
 import (
 	"embed"
 	"log"
+	"log/slog"
+	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -12,12 +17,44 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-// main opens the window and runs the app until it quits.
+var version = "dev"
+
+// main sets up the log and the service and runs the app until it quits.
 func main() {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cacheDir = filepath.Join(cacheDir, "Standblatt")
+	logFile, err := openLog(filepath.Join(cacheDir, "print-agent.log"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logFile.Close()
+	logger := slog.New(slog.NewTextHandler(logFile, nil))
+	log.SetOutput(logFile)
+	hostname, _ := os.Hostname()
+	logger.Info("print agent started", "version", version)
+
+	svc := &Service{
+		ConfigPath: filepath.Join(configDir, "Standblatt", "print-agent.json"),
+		Version:    version,
+		Hostname:   hostname,
+		Backend:    newBackend(filepath.Join(cacheDir, "pdfium"), logger),
+		Client:     &http.Client{Timeout: 60 * time.Second},
+		Log:        logger,
+	}
 	app := application.New(application.Options{
-		Name:   "Standblatt Print Agent",
-		Assets: application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
+		Name:     "Standblatt Print Agent",
+		Services: []application.Service{application.NewService(svc)},
+		Assets:   application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
+		Logger:   logger,
 	})
+	svc.Autostart = app.Autostart
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:  "Standblatt Print Agent",
 		Width:  720,
@@ -25,6 +62,7 @@ func main() {
 		URL:    "/",
 	})
 	if err := app.Run(); err != nil {
-		log.Fatal(err)
+		logger.Error("app", "err", err)
+		os.Exit(1)
 	}
 }

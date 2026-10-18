@@ -1,0 +1,256 @@
+package main
+
+import (
+	"context"
+	"crypto/rand"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"net/url"
+	"slices"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+
+	"github.com/standblatt/print-agent/internal/agent"
+)
+
+// pairPoll is how often a started pairing asks the server whether it was confirmed.
+var pairPoll = 2 * time.Second
+
+// Service is bound to the frontend: the ranges this computer prints for, pairing, printers and settings.
+type Service struct {
+	ConfigPath string
+	Version    string
+	Hostname   string // proposed to the server as the agent's name
+	Backend    agent.Backend
+	Client     *http.Client
+	Log        *slog.Logger
+	Autostart  *application.AutostartManager // nil in tests
+
+	mu      sync.Mutex
+	ctx     context.Context
+	cfg     Config
+	agents  map[string]running
+	pairing *pairing
+}
+
+// running is the agent of a range and the function that stops it.
+type running struct {
+	*agent.Agent
+	stop context.CancelFunc
+}
+
+// pairing is the pairing in progress.
+type pairing struct {
+	PairingState
+	cancel context.CancelFunc
+}
+
+// State is everything the window shows; the frontend polls it.
+type State struct {
+	Ranges  []RangeState  `json:"ranges"`
+	Pairing *PairingState `json:"pairing"`
+}
+
+// RangeState is a range this computer prints for and what its agent last saw.
+type RangeState struct {
+	ID     string       `json:"id"`
+	Club   string       `json:"club"`
+	Range  string       `json:"range"`
+	Server string       `json:"server"`
+	Status agent.Status `json:"status"`
+}
+
+// PairingState is a pairing in progress: the code to confirm on the server, or why it ended without a range.
+type PairingState struct {
+	Code    string `json:"code"`
+	URL     string `json:"url"` // the server's /connect page with the code
+	Expired bool   `json:"expired"`
+	Err     string `json:"err"`
+}
+
+// Settings are the settings the user can change.
+type Settings struct {
+	Server    string `json:"server"`
+	Autostart bool   `json:"autostart"`
+}
+
+// ServiceStartup loads the config and starts an agent per range; on the first start it turns autostart on.
+func (s *Service) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
+	cfg, created, err := loadConfig(s.ConfigPath)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", s.ConfigPath, err)
+	}
+	if created {
+		if err := saveConfig(s.ConfigPath, cfg); err != nil {
+			return err
+		}
+		if s.Autostart != nil {
+			if err := s.Autostart.Enable(); err != nil {
+				s.Log.Warn("turn autostart on", "err", err)
+			}
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ctx, s.cfg, s.agents = ctx, cfg, map[string]running{}
+	for _, r := range cfg.Ranges {
+		s.start(r)
+	}
+	return nil
+}
+
+// newAgent returns an agent for server with token; without token it can only pair.
+func (s *Service) newAgent(server, token string, log *slog.Logger) *agent.Agent {
+	return &agent.Agent{URL: server, Token: token, Version: s.Version, Backend: s.Backend, Client: s.Client, Log: log}
+}
+
+// start runs the agent of r until the app ends or the range is removed; s.mu must be held.
+func (s *Service) start(r Range) {
+	ctx, stop := context.WithCancel(s.ctx)
+	a := s.newAgent(r.Server, r.Token, s.Log.With("club", r.Club, "range", r.Range))
+	s.agents[r.ID] = running{a, stop}
+	go a.Run(ctx)
+}
+
+// State returns the ranges with what their agents last saw, and the pairing in progress.
+func (s *Service) State() State {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	st := State{Ranges: []RangeState{}}
+	for _, r := range s.cfg.Ranges {
+		st.Ranges = append(st.Ranges, RangeState{ID: r.ID, Club: r.Club, Range: r.Range, Server: r.Server, Status: s.agents[r.ID].Status()})
+	}
+	if s.pairing != nil {
+		p := s.pairing.PairingState
+		st.Pairing = &p
+	}
+	return st
+}
+
+// StartPairing asks the server for a code and waits in the background until a member confirms it on the server's
+// /connect page; then the range is saved and its agent starts. A pairing in progress is cancelled.
+func (s *Service) StartPairing() (PairingState, error) {
+	s.CancelPairing()
+	s.mu.Lock()
+	server, ctx := s.cfg.Server, s.ctx
+	s.mu.Unlock()
+	a := s.newAgent(server, "", s.Log)
+	start, cancelStart := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelStart()
+	p, err := a.Pair(start, s.Hostname)
+	if err != nil {
+		return PairingState{}, err
+	}
+	pctx, cancel := context.WithCancel(ctx)
+	state := PairingState{Code: p.Code, URL: strings.TrimSuffix(server, "/") + "/connect?code=" + url.QueryEscape(p.Code)}
+	s.mu.Lock()
+	s.pairing = &pairing{state, cancel}
+	current := s.pairing
+	s.mu.Unlock()
+	go func() {
+		paired, err := a.WaitPaired(pctx, p.Secret, pairPoll)
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if s.pairing != current {
+			return
+		}
+		if err != nil {
+			s.pairing.Expired = errors.Is(err, agent.ErrPairingExpired)
+			s.pairing.Err = err.Error()
+			return
+		}
+		r := Range{ID: rand.Text()[:10], Server: server, Club: paired.Club, Range: paired.Range, Token: paired.Token}
+		cfg := s.cfg
+		cfg.Ranges = append(slices.Clone(cfg.Ranges), r)
+		if err := saveConfig(s.ConfigPath, cfg); err != nil {
+			s.pairing.Err = err.Error()
+			return
+		}
+		s.cfg, s.pairing = cfg, nil
+		s.start(r)
+		s.Log.Info("range connected", "club", r.Club, "range", r.Range)
+	}()
+	return state, nil
+}
+
+// CancelPairing stops the pairing in progress, if any.
+func (s *Service) CancelPairing() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.pairing != nil {
+		s.pairing.cancel()
+		s.pairing = nil
+	}
+}
+
+// Remove stops printing for a range and forgets its token; the agent stays listed on the server until a member
+// deletes it there.
+func (s *Service) Remove(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cfg := s.cfg
+	cfg.Ranges = slices.DeleteFunc(slices.Clone(cfg.Ranges), func(r Range) bool { return r.ID == id })
+	if err := saveConfig(s.ConfigPath, cfg); err != nil {
+		return err
+	}
+	s.cfg = cfg
+	if a, ok := s.agents[id]; ok {
+		a.stop()
+		delete(s.agents, id)
+	}
+	return nil
+}
+
+// Printers lists the printers of this computer with their options.
+func (s *Service) Printers() ([]agent.Printer, error) {
+	return s.Backend.Printers(s.ctx)
+}
+
+// TestPage prints a label-sized test page on printer with its default options, without the server.
+func (s *Service) TestPage(printer string) error {
+	pdf := testPage("Standblatt test page", printer, s.Hostname+", "+time.Now().Format("2006-01-02 15:04"))
+	return s.Backend.Print(s.ctx, &agent.Job{Title: "Standblatt test page", Printer: printer, Options: map[string]string{}, PDF: pdf})
+}
+
+// Settings returns the server for new pairings and whether the app starts with the computer.
+func (s *Service) Settings() (Settings, error) {
+	s.mu.Lock()
+	st := Settings{Server: s.cfg.Server}
+	s.mu.Unlock()
+	if s.Autostart == nil {
+		return st, nil
+	}
+	var err error
+	st.Autostart, err = s.Autostart.IsEnabled()
+	return st, err
+}
+
+// SetServer sets the server new ranges are paired with; connected ranges keep theirs.
+func (s *Service) SetServer(server string) error {
+	server = strings.TrimSuffix(strings.TrimSpace(server), "/")
+	if u, err := url.Parse(server); err != nil || u.Scheme != "https" && u.Scheme != "http" || u.Host == "" {
+		return fmt.Errorf("%q is not a web address", server)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cfg := s.cfg
+	cfg.Server = server
+	if err := saveConfig(s.ConfigPath, cfg); err != nil {
+		return err
+	}
+	s.cfg = cfg
+	return nil
+}
+
+// SetAutostart turns starting the app with the computer on or off.
+func (s *Service) SetAutostart(on bool) error {
+	if on {
+		return s.Autostart.Enable()
+	}
+	return s.Autostart.Disable()
+}
