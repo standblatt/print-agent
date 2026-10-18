@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -39,7 +38,7 @@ func (f *fakeBackend) Print(_ context.Context, j *Job) error {
 }
 
 func newAgent(url string, b Backend) *Agent {
-	return &Agent{URL: url + "/", Token: "secret", Version: "v1.2.3", Backend: b, Client: http.DefaultClient,
+	return &Agent{URL: url + "/", Token: "secret", Backend: b, Client: http.DefaultClient,
 		Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 }
 
@@ -56,8 +55,8 @@ func TestHello(t *testing.T) {
 	if err := newAgent(srv.URL, &fakeBackend{}).Hello(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if got["version"] != "v1.2.3" || got["os"] != runtime.GOOS {
-		t.Fatalf("hello body: %v", got)
+	if len(got) != 1 {
+		t.Fatalf("hello body has more than the printers, the server rejects unknown properties: %v", got)
 	}
 	printers := got["printers"].([]any)
 	if len(printers) != 1 || printers[0].(map[string]any)["name"] != "Office" {

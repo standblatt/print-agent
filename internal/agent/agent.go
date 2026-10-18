@@ -11,7 +11,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -49,7 +48,6 @@ type Backend interface {
 type Agent struct {
 	URL     string
 	Token   string
-	Version string
 	Backend Backend
 	Client  *http.Client
 	Log     *slog.Logger
@@ -85,14 +83,13 @@ func (a *Agent) request(ctx context.Context, method, path string, body any) (*ht
 	return resp, nil
 }
 
-// Hello reports the printers, the agent version and the operating system to the server.
+// Hello reports the printers to the server.
 func (a *Agent) Hello(ctx context.Context) error {
 	printers, err := a.Backend.Printers(ctx)
 	if err != nil {
 		return err
 	}
-	resp, err := a.request(ctx, http.MethodPost, "/api/agent/hello",
-		map[string]any{"printers": printers, "version": a.Version, "os": runtime.GOOS})
+	resp, err := a.request(ctx, http.MethodPost, "/api/agent/hello", map[string]any{"printers": printers})
 	if err != nil {
 		return err
 	}

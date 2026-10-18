@@ -42,7 +42,6 @@ func main() {
 		a := &agent.Agent{
 			URL:     url,
 			Token:   token,
-			Version: version,
 			Backend: cups.CUPS{Log: l},
 			Client:  &http.Client{Timeout: 60 * time.Second},
 			Log:     l,
