@@ -102,7 +102,8 @@ type Settings struct {
 	Version   string `json:"version"`
 }
 
-// ServiceStartup loads the config and starts an agent per range; on the first start it turns autostart on.
+// ServiceStartup loads the config and starts an agent per range; on the first start of a release it turns autostart
+// on.
 func (s *Service) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	cfg, created, err := loadConfig(s.ConfigPath)
 	if err != nil {
@@ -112,7 +113,8 @@ func (s *Service) ServiceStartup(ctx context.Context, _ application.ServiceOptio
 		if err := saveConfig(s.ConfigPath, cfg); err != nil {
 			return err
 		}
-		if s.Autostart != nil {
+		// A dev build (go run) must not register its temporary binary.
+		if s.Autostart != nil && s.Version != "dev" {
 			if err := s.enableAutostart(); err != nil {
 				s.Log.Warn("turn autostart on", "err", err)
 			}

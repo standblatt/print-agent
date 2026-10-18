@@ -59,6 +59,7 @@ options, waits for print jobs (long polling) and prints them. No port needs to b
 ```sh
 make build    # bin/: the agent for this computer and the Linux release binaries
 make app      # app/bin/: the desktop app for Windows (needs Node.js)
+make dev      # the desktop app in a window on this computer, rebuilt on changes (wails3 dev)
 make prepare  # gofmt, go vet, staticcheck, svelte-check, doc comments; before every commit
 make test     # Go tests and the contract test against the server image of the CI (needs Docker)
 make clean

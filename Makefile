@@ -3,7 +3,7 @@ VERSION := $(shell git describe --tags --always --dirty 2>/dev/null)
 SERVER_VERSION := $(shell sed -n 's/^ *SERVER_VERSION: //p' .github/workflows/ci.yml)
 CONTRACT := standblatt-contract
 
-.PHONY: build app app-deps prepare test clean
+.PHONY: build app app-deps dev prepare test clean
 
 # The headless agent for this computer and the Linux release binaries.
 build:
@@ -26,6 +26,12 @@ app: app-deps
 	cd app && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags production -trimpath \
 		-ldflags="-s -w -H windowsgui -X main.version=$(VERSION)" -o bin/standblatt-print-agent-windows-amd64.exe .; \
 		s=$$?; rm -f wails_windows_amd64.syso; exit $$s
+
+# The app in a window on this computer (CUPS backend, real config and printers) through wails3 dev: Vite serves the
+# frontend, Go changes in app/ rebuild and restart the app. A dev build never turns on autostart and logs to the
+# terminal too.
+dev: app-deps
+	cd app && go tool wails3 dev -config build/config.yml
 
 # Everything to check before a commit: gofmt, go vet and staticcheck (also for Windows) of both modules,
 # svelte-check, doc comments.

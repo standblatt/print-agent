@@ -4,6 +4,7 @@ package main
 
 import (
 	"embed"
+	"io"
 	"log"
 	"log/slog"
 	"net/http"
@@ -38,8 +39,12 @@ func main() {
 		log.Fatal(err)
 	}
 	defer logFile.Close()
-	logger := slog.New(slog.NewTextHandler(logFile, nil))
-	log.SetOutput(logFile)
+	out := io.Writer(logFile)
+	if version == "dev" {
+		out = io.MultiWriter(logFile, os.Stderr)
+	}
+	logger := slog.New(slog.NewTextHandler(out, nil))
+	log.SetOutput(out)
 	hostname, _ := os.Hostname()
 	logger.Info("print agent started", "version", version)
 

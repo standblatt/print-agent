@@ -1,0 +1,28 @@
+# wails3 dev (make dev): rebuilds and restarts the app when its Go files change; Vite serves the frontend.
+dev_mode:
+  root_path: .
+  log_level: warn
+  debounce: 1000
+  ignore:
+    dir:
+      - .git
+      - frontend
+      - bin
+    file:
+      - .DS_Store
+      - "*_test.go"
+    watched_extension:
+      - "*.go"
+    git_ignore: true
+  executes:
+    - cmd: go build -o bin/dev .
+      type: blocking
+    - cmd: npm --prefix frontend run dev
+      type: background
+      readiness:
+        http: "http://127.0.0.1:9245/"
+        timeout: "60s"
+        interval: "200ms"
+    - cmd: bin/dev
+      type: primary
+      exit_policy: shutdown
