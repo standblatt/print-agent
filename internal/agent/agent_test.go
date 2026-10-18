@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -38,7 +40,7 @@ func (f *fakeBackend) Print(_ context.Context, j *Job) error {
 }
 
 func newAgent(url string, b Backend) *Agent {
-	return &Agent{URL: url + "/", Token: "secret", Backend: b, Client: http.DefaultClient,
+	return &Agent{URL: url + "/", Token: "secret", Version: "v1.2.3", Backend: b, Client: http.DefaultClient,
 		Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 }
 
@@ -49,14 +51,18 @@ func TestHello(t *testing.T) {
 			t.Errorf("unexpected request %s %s %q", r.Method, r.URL.Path, r.Header.Get("Authorization"))
 		}
 		json.NewDecoder(r.Body).Decode(&got)
-		w.WriteHeader(http.StatusNoContent)
+		io.WriteString(w, `{"club":"SG Testdorf","range":"25 m","missingPrinters":["Brother_QL"]}`)
 	}))
 	defer srv.Close()
-	if err := newAgent(srv.URL, &fakeBackend{}).Hello(context.Background()); err != nil {
+	info, err := newAgent(srv.URL, &fakeBackend{}).Hello(context.Background())
+	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 {
-		t.Fatalf("hello body has more than the printers, the server rejects unknown properties: %v", got)
+	if want := (Info{Club: "SG Testdorf", Range: "25 m", MissingPrinters: []string{"Brother_QL"}}); !reflect.DeepEqual(info, want) {
+		t.Fatalf("info %+v", info)
+	}
+	if len(got) != 3 || got["version"] != "v1.2.3" || got["os"] != runtime.GOOS {
+		t.Fatalf("hello body: %v", got)
 	}
 	printers := got["printers"].([]any)
 	if len(printers) != 1 || printers[0].(map[string]any)["name"] != "Office" {
@@ -69,7 +75,7 @@ func TestHelloBackendError(t *testing.T) {
 		t.Error("no request expected when the printers cannot be listed")
 	}))
 	defer srv.Close()
-	err := newAgent(srv.URL, &fakeBackend{fail: errors.New("no cups")}).Hello(context.Background())
+	_, err := newAgent(srv.URL, &fakeBackend{fail: errors.New("no cups")}).Hello(context.Background())
 	if err == nil || err.Error() != "no cups" {
 		t.Fatalf("got %v", err)
 	}
@@ -103,7 +109,7 @@ func TestUnauthorized(t *testing.T) {
 		http.Error(w, "Unknown or revoked agent token", http.StatusUnauthorized)
 	}))
 	defer srv.Close()
-	err := newAgent(srv.URL, &fakeBackend{}).Hello(context.Background())
+	_, err := newAgent(srv.URL, &fakeBackend{}).Hello(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "401") || !strings.Contains(err.Error(), "revoked") {
 		t.Fatalf("got %v", err)
 	}
@@ -120,7 +126,7 @@ func TestRun(t *testing.T) {
 		defer mu.Unlock()
 		switch {
 		case r.URL.Path == "/api/agent/hello":
-			w.WriteHeader(http.StatusNoContent)
+			io.WriteString(w, `{"club":"C","range":"R","missingPrinters":[]}`)
 		case r.URL.Path == "/api/agent/jobs/next" && len(jobs) > 0:
 			io.WriteString(w, jobs[0])
 			jobs = jobs[1:]

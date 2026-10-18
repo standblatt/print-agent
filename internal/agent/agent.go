@@ -11,6 +11,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -44,10 +45,18 @@ type Backend interface {
 	Print(ctx context.Context, j *Job) error
 }
 
+// Info is what the server answers a hello: where the agent prints and which routed printers it lacks.
+type Info struct {
+	Club            string   `json:"club"`
+	Range           string   `json:"range"`
+	MissingPrinters []string `json:"missingPrinters"`
+}
+
 // Agent talks to one Standblatt server with the token of one range.
 type Agent struct {
 	URL     string
 	Token   string
+	Version string
 	Backend Backend
 	Client  *http.Client
 	Log     *slog.Logger
@@ -83,19 +92,27 @@ func (a *Agent) request(ctx context.Context, method, path string, body any) (*ht
 	return resp, nil
 }
 
-// Hello reports the printers to the server.
-func (a *Agent) Hello(ctx context.Context) error {
+// Hello reports the printers, the agent's version and the operating system to the server and returns its answer.
+func (a *Agent) Hello(ctx context.Context) (Info, error) {
+	var info Info
 	printers, err := a.Backend.Printers(ctx)
 	if err != nil {
-		return err
+		return info, err
 	}
-	resp, err := a.request(ctx, http.MethodPost, "/api/agent/hello", map[string]any{"printers": printers})
+	resp, err := a.request(ctx, http.MethodPost, "/api/agent/hello",
+		map[string]any{"printers": printers, "version": a.Version, "os": runtime.GOOS})
 	if err != nil {
-		return err
+		return info, err
 	}
-	resp.Body.Close()
-	a.Log.Info("printers reported", "count", len(printers))
-	return nil
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return info, fmt.Errorf("hello answer: %w", err)
+	}
+	a.Log.Info("printers reported", "count", len(printers), "club", info.Club, "range", info.Range)
+	if len(info.MissingPrinters) > 0 {
+		a.Log.Warn("printers of the printing setup not found", "printers", info.MissingPrinters)
+	}
+	return info, nil
 }
 
 // Next waits for the next job; nil means none arrived within the server's wait time.
@@ -132,7 +149,7 @@ func (a *Agent) Run(ctx context.Context) {
 	backoff := time.Second
 	for ctx.Err() == nil {
 		if time.Since(lastHello) > 5*time.Minute {
-			if err := a.Hello(ctx); err != nil {
+			if _, err := a.Hello(ctx); err != nil {
 				a.Log.Warn("report printers", "err", err)
 			} else {
 				lastHello = time.Now()
