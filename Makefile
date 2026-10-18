@@ -70,11 +70,13 @@ app-headless:
 			-o bin/standblatt-print-agent-linux-$$arch ./cmd/standblatt-print-agent || exit 1; \
 	done
 
-# Frontend packages and the TypeScript bindings of the app's Go services; the wails3 tool runs here, whatever GOOS
-# and GOARCH a build is for.
+# Frontend packages and the TypeScript bindings of the app's Go services. The wails3 tool is built for this
+# computer, whatever GOOS and GOARCH a build is for, and reads the app as a Windows build: the bindings are the same
+# on every system, and Wails needs no CGO there (on Linux it would need GTK).
 app-deps:
 	cd app/frontend && npm install --no-audit --no-fund
-	cd app && GOOS= GOARCH= go tool wails3 generate bindings -clean=true -ts -i
+	cd app && GOOS= GOARCH= go build -o ../bin/wails3 github.com/wailsapp/wails/v3/cmd/wails3
+	cd app && GOOS=windows GOARCH=amd64 ../bin/wails3 generate bindings -clean=true -ts -i
 
 # The frontend the app embeds.
 app-frontend: app-deps
