@@ -58,10 +58,15 @@ options, waits for print jobs (long polling) and prints them. No port needs to b
 
 ```sh
 make build    # bin/: the agent for this computer and the Linux release binaries
-make prepare  # gofmt, go vet, staticcheck, doc comments; before every commit
+make app      # app/bin/: the desktop app for Windows (needs Node.js)
+make prepare  # gofmt, go vet, staticcheck, svelte-check, doc comments; before every commit
 make test     # Go tests and the contract test against the server image of the CI (needs Docker)
 make clean
 ```
+
+The desktop app lives in `app/`, its own Go module with [Wails 3](https://v3.wails.io), so the headless agent stays
+free of Wails. Its frontend (`app/frontend/`) is Svelte with Tailwind and Lingui; `npm run i18n` there updates the
+translations in `src/locales/`.
 
 ## License
 

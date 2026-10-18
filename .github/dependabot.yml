@@ -11,6 +11,29 @@ updates:
       - dependency-name: go
         versions: [">= 1.28"]
 
+  # Wails (Go module and @wailsio/runtime) is raised by hand, both to the same version.
+  - package-ecosystem: gomod
+    directory: /app
+    schedule:
+      interval: weekly
+    groups:
+      go:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: go
+        versions: [">= 1.28"]
+      - dependency-name: github.com/wailsapp/wails/v3
+
+  - package-ecosystem: npm
+    directory: /app/frontend
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "@wailsio/runtime"
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

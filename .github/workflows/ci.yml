@@ -39,6 +39,48 @@ jobs:
       - run: go tool staticcheck ./...
       - run: go test ./internal/agent ./internal/winspool
 
+  # The desktop app, cross-compiled for Windows as on a developer machine (without CGO even for the wails3 tool,
+  # which needs GTK on Linux otherwise), and its frontend checks.
+  app:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: 0
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: app/go.mod
+          cache-dependency-path: app/go.sum
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/frontend/package-lock.json
+      - run: make app VERSION=$([ "$GITHUB_REF_TYPE" = tag ] && echo "$GITHUB_REF_NAME" || echo "${GITHUB_SHA::7}")
+      - run: npm run check
+        working-directory: app/frontend
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app
+          path: app/bin/
+          retention-days: 7
+
+  # The app's Go code on Windows, where it runs.
+  app-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: app/go.mod
+          cache-dependency-path: app/go.sum
+      - run: go vet ./...
+      - run: go build -C .. -o app/bin/staticcheck.exe honnef.co/go/tools/cmd/staticcheck && bin/staticcheck ./...
+      - run: go test ./...
+
   # Known vulnerabilities in code paths we call; not a need of release, so a new report does not block releases.
   govulncheck:
     runs-on: ubuntu-latest

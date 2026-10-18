@@ -1,0 +1,12 @@
+{
+	"extends": "@tsconfig/svelte/tsconfig.json",
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"isolatedModules": true,
+		"paths": { "$lib/*": ["./src/lib/*"], "$locales/*": ["./src/locales/*"] }
+	},
+	"include": ["src/**/*.ts", "src/**/*.svelte", "bindings"]
+}

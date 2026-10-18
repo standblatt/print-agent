@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contract test in CI: the agent runs against a pinned Standblatt server image and must report its printers; a wrong token must be refused (by @HB9HIL)
 - Makefile with `build`, `prepare`, `test` (Go tests and the contract test in Docker) and `clean` (by @HB9HIL)
 - Windows backend (`internal/winspool`) for the desktop app: printers, trays and papers from the spooler, PDFs rendered with PDFium in WebAssembly (no CGO, no helper program) and printed through GDI; options `bin`, `paper`, `duplex`, `scale` (default `noscale`) and `color`; Windows CI job that prints through Microsoft Print to PDF (by @HB9HIL)
+- Desktop app *Standblatt Print Agent* (`app/`, Wails 3, own Go module) for Windows: scaffold with a Svelte frontend in English, German, French and Italian, `make app` builds the exe without CGO; CI builds it and checks it on Windows (by @HB9HIL)
 - Pairing by code in the agent package (`Agent.Pair`, `Agent.WaitPaired`) for the desktop app: the agent asks the server for a code, waits until a member confirms it on `/connect` and gets its token once (by @HB9HIL)
 
 ### Changed

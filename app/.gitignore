@@ -1,0 +1,8 @@
+/bin/
+/frontend/node_modules/
+# dist/ must exist for go:embed; vite copies public/.gitkeep back after emptying it.
+/frontend/dist/*
+!/frontend/dist/.gitkeep
+/frontend/bindings/
+/frontend/src/locales/*.ts
+*.syso

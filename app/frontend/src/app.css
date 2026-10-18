@@ -1,0 +1,100 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+/* Colours and tokens of the Standblatt web app (server web/src/app.css); dark follows the OS. */
+@theme {
+	--color-brand-50: #f3f6fa;
+	--color-brand-100: #e7edf4;
+	--color-brand-200: #cfdbe8;
+	--color-brand-300: #a8bcd3;
+	--color-brand-400: #7b97b8;
+	--color-brand-500: #4f7299;
+	--color-brand-600: #3a5a7c;
+	--color-brand-700: #2c4560;
+	--color-brand-800: #22354a;
+	--color-brand-900: #182633;
+	--color-brand-950: #0c141c;
+	--font-sans: 'Inter Variable', sans-serif;
+}
+
+@theme inline {
+	--color-ring: var(--ring);
+	--color-input: var(--input);
+	--color-border: var(--border);
+	--color-destructive: var(--destructive);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-accent: var(--accent);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-muted: var(--muted);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-secondary: var(--secondary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-primary: var(--primary);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-popover: var(--popover);
+	--color-card-foreground: var(--card-foreground);
+	--color-card: var(--card);
+	--color-foreground: var(--foreground);
+	--color-background: var(--background);
+	--radius-sm: calc(var(--radius) * 0.6);
+	--radius-md: calc(var(--radius) * 0.8);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+	--radius: 0.3rem;
+	--background: #f5f7f9;
+	--foreground: #101a23;
+	--card: #ffffff;
+	--card-foreground: #101a23;
+	--popover: #ffffff;
+	--popover-foreground: #101a23;
+	--primary: #182633;
+	--primary-foreground: #ffffff;
+	--secondary: #e9eef3;
+	--secondary-foreground: #182633;
+	--muted: #eef2f5;
+	--muted-foreground: #5b6b7a;
+	--accent: #eef2f5;
+	--accent-foreground: #182633;
+	--destructive: #c62828;
+	--border: #dde3e9;
+	--input: #cfd7df;
+	--ring: #f59e0b;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: #0c141c;
+		--foreground: #e6ecf2;
+		--card: #121d27;
+		--card-foreground: #e6ecf2;
+		--popover: #142130;
+		--popover-foreground: #e6ecf2;
+		--primary: #fbbf24;
+		--primary-foreground: #0c141c;
+		--secondary: #1c2a38;
+		--secondary-foreground: #e6ecf2;
+		--muted: #18242f;
+		--muted-foreground: #8b9cad;
+		--accent: #1c2a38;
+		--accent-foreground: #e6ecf2;
+		--destructive: #f87171;
+		--border: rgb(255 255 255 / 0.09);
+		--input: rgb(255 255 255 / 0.14);
+	}
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	html {
+		@apply antialiased;
+		color-scheme: light dark;
+	}
+	body {
+		@apply bg-background font-sans text-foreground;
+	}
+}

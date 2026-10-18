@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """Fails when a Go or TypeScript/Svelte function has no doc comment directly above it.
 
-Go: every `func` in internal/ and cmd/ (tests excluded) needs a `//` comment line above it.
+Go: every `func` in internal/, cmd/ and app/ (tests excluded) needs a `//` comment line above it.
 TS: every function declaration, class method and arrow function assigned to a const (components/ui,
 api.gen.ts, locales and .d.ts excluded) needs a `/** … */` or `//` comment above it.
 Usage: scripts/funcdoc.py [paths]; without paths the whole repo is checked.
 """
-import glob
 import os
 import re
 import sys
@@ -18,12 +17,16 @@ TS_METHOD = re.compile(r"^\s+(?:(?:private|public|protected|static|async|get|set
 TS_SKIP = ("/components/ui/", "api.gen.ts", "/locales/", ".d.ts")
 
 
+SKIP_DIRS = {"node_modules", "bindings", "dist"}
+
+
 def files(paths):
     out = []
     for a in paths:
         if os.path.isdir(a):
-            for ext in ("go", "ts", "svelte"):
-                out += glob.glob(os.path.join(a, f"**/*.{ext}"), recursive=True)
+            for root, dirs, names in os.walk(a):
+                dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+                out += [os.path.join(root, n) for n in names if n.endswith((".go", ".ts", ".svelte"))]
         else:
             out.append(a)
     return sorted(set(out))
@@ -51,7 +54,7 @@ def missing(path):
 
 
 def main():
-    paths = sys.argv[1:] or ["internal", "cmd"]
+    paths = sys.argv[1:] or ["internal", "cmd", "app"]
     found = [m for p in files(paths) for m in missing(p)]
     print("\n".join(found))
     print(f"functions without a doc comment: {len(found)}")

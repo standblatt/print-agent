@@ -3,7 +3,7 @@ VERSION := $(shell git describe --tags --always --dirty 2>/dev/null)
 SERVER_VERSION := $(shell sed -n 's/^ *SERVER_VERSION: //p' .github/workflows/ci.yml)
 CONTRACT := standblatt-contract
 
-.PHONY: build prepare test clean
+.PHONY: build app app-deps prepare test clean
 
 # The headless agent for this computer and the Linux release binaries.
 build:
@@ -13,14 +13,31 @@ build:
 			-o bin/standblatt-print-agent-linux-$$arch ./cmd/standblatt-print-agent || exit 1; \
 	done
 
-# Everything to check before a commit: gofmt, go vet and staticcheck (also for Windows), doc comments.
-prepare:
+# Frontend packages and the TypeScript bindings of the app's Go services.
+app-deps:
+	cd app/frontend && npm install --no-audit --no-fund
+	cd app && go tool wails3 generate bindings -clean=true -ts -i
+
+# The desktop app for Windows, cross-compiled without CGO: frontend, icon and manifest (syso), exe.
+app: app-deps
+	cd app/frontend && npm run build
+	cd app && go tool wails3 generate syso -arch amd64 -icon build/windows/icon.ico \
+		-manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_amd64.syso
+	cd app && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags production -trimpath \
+		-ldflags="-s -w -H windowsgui -X main.version=$(VERSION)" -o bin/standblatt-print-agent-windows-amd64.exe .; \
+		s=$$?; rm -f wails_windows_amd64.syso; exit $$s
+
+# Everything to check before a commit: gofmt, go vet and staticcheck (also for Windows) of both modules,
+# svelte-check, doc comments.
+prepare: app-deps
 	@test -z "$$(gofmt -l .)" || { gofmt -l .; echo "gofmt: files above need formatting"; exit 1; }
 	go vet ./...
 	GOOS=windows go vet ./...
 	go tool staticcheck ./...
 	go build -o bin/staticcheck honnef.co/go/tools/cmd/staticcheck
 	GOOS=windows bin/staticcheck ./...
+	cd app && go vet ./... && GOOS=windows go vet ./... && ../bin/staticcheck ./... && GOOS=windows ../bin/staticcheck ./...
+	cd app/frontend && npm run check
 	python3 scripts/funcdoc.py
 	@git status --short
 
