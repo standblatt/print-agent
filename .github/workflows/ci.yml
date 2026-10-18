@@ -88,7 +88,7 @@ jobs:
         ports: ["5432:5432"]
         options: --health-cmd "pg_isready -U standblatt" --health-interval 2s --health-retries 30
     env:
-      SERVER_VERSION: v0.20.1
+      SERVER_VERSION: v0.21.0
       DATABASE_URL: postgres://standblatt:standblatt@localhost:5432/standblatt
     steps:
       - uses: actions/checkout@v7
@@ -101,6 +101,10 @@ jobs:
           timeout 60 sh -c 'until curl -sf http://localhost:8080/readyz; do sleep 1; done'
           curl -sSf "https://raw.githubusercontent.com/standblatt/server/$SERVER_VERSION/docker/dev-seed.sql" | psql -q "$DATABASE_URL"
       - run: chmod +x bin/* && AGENT=bin/standblatt-print-agent-linux-amd64 scripts/contract.sh
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: STANDBLATT_CONTRACT_URL=http://localhost:8080 go test ./internal/agent -run Contract -count=1 -v
       - if: failure()
         run: docker logs standblatt
 

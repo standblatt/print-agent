@@ -24,7 +24,8 @@ prepare:
 	python3 scripts/funcdoc.py
 	@git status --short
 
-# Go tests, then the contract test against the server image of the CI with PostgreSQL in Docker (server on :18080).
+# Go tests, then the contract tests (agent binary, pairing) against the server image of the CI with PostgreSQL in
+# Docker (server on :18080).
 test:
 	go test ./...
 	go build -o bin/standblatt-print-agent ./cmd/standblatt-print-agent
@@ -38,7 +39,8 @@ test:
 		for i in $$(seq 60); do curl -sf -o /dev/null http://localhost:18080/readyz && break; sleep 1; done; \
 		curl -sSf https://raw.githubusercontent.com/standblatt/server/$(SERVER_VERSION)/docker/dev-seed.sql | \
 			docker exec -i $(CONTRACT)-db psql -q -U standblatt -d standblatt >/dev/null; \
-		BASE_URL=http://localhost:18080 AGENT=bin/standblatt-print-agent scripts/contract.sh \
+		{ BASE_URL=http://localhost:18080 AGENT=bin/standblatt-print-agent scripts/contract.sh && \
+			STANDBLATT_CONTRACT_URL=http://localhost:18080 go test ./internal/agent -run Contract -count=1; } \
 			|| { docker logs $(CONTRACT)-server 2>&1 | tail -20; exit 1; }
 
 # Removes build output and leftover contract test containers.

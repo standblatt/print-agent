@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Contract test: runs the agent binary with the fake CUPS from testdata against a real Standblatt server.
 # Needs a server at $BASE_URL with the server's docker/dev-seed.sql applied (club "Dev Club", user dev/devpassword).
-# TEST_PAGE=1 also prints a test page through the server (needs a server with POST …/print-test).
 set -euo pipefail
 
 base=${BASE_URL:-http://localhost:8080}
@@ -44,19 +43,17 @@ printers_reported() {
 wait_for printers_reported
 echo "ok: printers reported"
 
-if [ "${TEST_PAGE:-}" = 1 ]; then
-	api POST "$path/print-test" '{"printer":"Office_A5","options":{"InputSlot":"Tray2"}}' >/dev/null
-	# job_done checks that the newest job of the range is done.
-	job_done() {
-		api GET "$path/print-jobs" | jq -e '.[0].status == "done"' >/dev/null
-	}
-	wait_for job_done
-	grep -q -- '-d Office_A5 .*-o InputSlot=Tray2' "$tmp/lp.log"
-	grep -q '%PDF' "$tmp/lp.log"
-	echo "ok: test page printed"
-fi
+api POST "$path/print-test" '{"printer":"Office_A5","options":{"InputSlot":"Tray2"}}' >/dev/null
+# job_done checks that the newest job of the range is done.
+job_done() {
+	api GET "$path/print-jobs" | jq -e '.[0].status == "done"' >/dev/null
+}
+wait_for job_done
+grep -q -- '-d Office_A5 .*-o InputSlot=Tray2' "$tmp/lp.log"
+grep -q '%PDF' "$tmp/lp.log"
+echo "ok: test page printed"
 
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Authorization: Bearer wrong' -H 'Content-Type: application/json' \
-	-d '{"printers":[]}' "$base/api/agent/hello")
+	-d '{"printers":[],"version":"contract","os":"linux"}' "$base/api/agent/hello")
 [ "$code" = 401 ] || { echo "wrong token: got $code, want 401" >&2; exit 1; }
 echo "ok: wrong token refused"

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pairing by code in the agent package (`Agent.Pair`, `Agent.WaitPaired`) for the desktop app: the agent asks the server for a code, waits until a member confirms it on `/connect` and gets its token once (by @HB9HIL)
 
 ### Changed
+- The contract test runs against Standblatt 0.21.0, prints a test page and pairs through `Agent.Pair` and `Agent.WaitPaired` (by @HB9HIL)
 - The agent reports its version and operating system with its printers and logs the club, the range and the printers of the printing setup it does not find; it needs Standblatt 0.21.0 (by @HB9HIL)
 - The CUPS backend reports only the tray, paper size and media type options (`InputSlot`, `PageSize`, `MediaType`); other `lp` options remain free text in the printing setup (by @HB9HIL)
 
