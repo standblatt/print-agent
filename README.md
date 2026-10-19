@@ -16,7 +16,8 @@ options, waits for print jobs (long polling) and prints them. No port needs to b
   *Applications*. It is not signed yet: open it the first time with *right click → Open*.
 - Linux: `standblatt-print-agent-app_<version>_<arch>.deb` or the `.rpm`.
 
-Start it, click *Connect a range* and confirm the code it shows in Standblatt. `SHA256SUMS` in the release lists the
+Start it, click *Connect a range* and confirm the code it shows in Standblatt. On Windows and macOS the app tells
+when a new version is out and installs it with *Update now*; on Linux the package manager updates it. `SHA256SUMS` in the release lists the
 checksums of all files.
 
 ## Headless agent for Linux (CUPS)

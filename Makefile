@@ -27,12 +27,13 @@ app-mac: app-frontend
 		sed 's/@VERSION@/$(VERSION)/' ../app/build/darwin/Info.plist > "$(MAC_APP)/Contents/Info.plist" && \
 		codesign --force --deep --sign - "$(MAC_APP)"
 
-# The Mac app as a disk image with a link to Applications to drag it into.
+# The Mac app as a disk image with a link to Applications to drag it into, and zipped for the in-app updater.
 app-dmg: app-mac
 	rm -rf bin/dmg && mkdir bin/dmg && cp -R "bin/$(MAC_APP)" bin/dmg/ && ln -s /Applications bin/dmg/Applications
 	hdiutil create -volname "Standblatt Print Agent" -srcfolder bin/dmg -ov -format UDZO \
 		bin/standblatt-print-agent-app-darwin-$(GOARCH).dmg
 	rm -rf bin/dmg
+	ditto -c -k --keepParent "bin/$(MAC_APP)" bin/standblatt-print-agent-app-darwin-$(GOARCH).app.zip
 
 # The desktop app for Linux (CUPS backend) on this architecture. It needs CGO with the GTK 4 and WebKitGTK 6.0
 # development packages, so it builds on Linux only.

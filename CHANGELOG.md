@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- In-app updates on Windows and macOS: the app looks for a new release at start and every six hours, shows *Version X is available* with *Update now* in the window and the tray, and on a click downloads it, checks it against `SHA256SUMS` and restarts with it; releases carry the Mac app as `.app.zip` for it. Linux packages update through the package manager (by @HB9HIL)
 - Windows installer `Standblatt-Print-Agent-Setup.exe` in English, German, French and Italian: installs per user without admin rights, with start menu and desktop shortcut and start with Windows, installs the WebView2 runtime if missing and over a running app; the uninstaller keeps the settings (by @HB9HIL)
 
 ## [0.1.0] - 2026-10-19

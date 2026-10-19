@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"strings"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -32,28 +33,45 @@ func show(w *application.WebviewWindow) {
 }
 
 // newTray puts the app into the system tray: green when every range prints, red otherwise; a click or Open shows
-// the window, Quit ends the app. The frontend sets the labels in its language through the service.
+// the window, Quit ends the app, and while a newer release is available an item installs it. The frontend sets the
+// labels in its language through the service. The menu and its labels are only touched on the main thread.
 func newTray(app *application.App, w *application.WebviewWindow, svc *Service) {
 	tray := app.SystemTray.New()
 	menu := app.NewMenu()
+	update := menu.Add("").OnClick(func(*application.Context) { go svc.InstallUpdate() }).SetHidden(true)
 	open := menu.Add("Open").OnClick(func(*application.Context) { show(w) })
 	quit := menu.Add("Quit").OnClick(func(*application.Context) { app.Quit() })
 	tray.SetIcon(trayError).SetMenu(menu).OnClick(func() { show(w) })
 	tray.SetTooltip("Standblatt Print Agent")
-	svc.OnMenuLabels = func(o, q string) {
+	updateLabel, shown := "Update to {version}", ""
+	svc.OnMenuLabels = func(o, q, u string) {
 		application.InvokeSync(func() {
+			updateLabel = u
 			open.SetLabel(o)
 			quit.SetLabel(q)
+			update.SetLabel(strings.ReplaceAll(updateLabel, "{version}", shown))
 			menu.Update()
 		})
 	}
 	go func() {
 		ok := false
 		for range time.Tick(2 * time.Second) {
-			if now := allOK(svc.State()); now != ok {
+			st := svc.State()
+			if now := allOK(st); now != ok {
 				ok = now
 				tray.SetIcon(map[bool][]byte{true: trayOK, false: trayError}[ok])
 			}
+			v := ""
+			if st.Update != nil {
+				v = st.Update.Version
+			}
+			application.InvokeSync(func() {
+				if v != shown {
+					shown = v
+					update.SetLabel(strings.ReplaceAll(updateLabel, "{version}", v)).SetHidden(v == "")
+					menu.Update()
+				}
+			})
 		}
 	}()
 }

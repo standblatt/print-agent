@@ -137,7 +137,25 @@ msgstr "Dieser Computer druckt noch für keinen Schiessstand. Verbinde ihn mit e
 msgid "This computer was removed from the range in Standblatt. Remove the range under Advanced and connect it again."
 msgstr "Dieser Computer wurde in Standblatt vom Schiessstand entfernt. Entferne den Schiessstand unter «Erweitert» und verbinde ihn neu."
 
+#: src/lib/UpdateBanner.svelte
+msgid "Update now"
+msgstr "Jetzt aktualisieren"
+
+#: src/App.svelte
+msgid "Update to {version}"
+msgstr "Auf {version} aktualisieren"
+
+#. placeholder {0}: update.version
+#: src/lib/UpdateBanner.svelte
+msgid "Updating to version {0}… The app restarts by itself."
+msgstr "Aktualisiere auf Version {0}… Die App startet von selbst neu."
+
 #. placeholder {0}: settings?.version ?? ''
 #: src/lib/Advanced.svelte
 msgid "Version {0}"
 msgstr "Version {0}"
+
+#. placeholder {0}: update.version
+#: src/lib/UpdateBanner.svelte
+msgid "Version {0} is available."
+msgstr "Version {0} ist verfügbar."

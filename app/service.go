@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/updater"
 
 	"github.com/standblatt/print-agent/internal/agent"
 )
@@ -30,13 +31,15 @@ type Service struct {
 	Client     *http.Client
 	Log        *slog.Logger
 	Autostart  *application.AutostartManager // nil in tests
+	Updates    updates                       // nil without in-app updates
 
-	OnMenuLabels func(open, quit string) // set by the tray
+	OnMenuLabels func(open, quit, update string) // set by the tray
 	mu           sync.Mutex
 	ctx          context.Context
 	cfg          Config
 	agents       map[string]running
 	pairing      *pairing
+	update       *UpdateState
 }
 
 // running is the agent of a range and the function that stops it.
@@ -55,6 +58,7 @@ type pairing struct {
 type State struct {
 	Ranges  []RangeState  `json:"ranges"`
 	Pairing *PairingState `json:"pairing"`
+	Update  *UpdateState  `json:"update"`
 }
 
 // RangeState is a range this computer prints for and what its agent last saw.
@@ -126,6 +130,9 @@ func (s *Service) ServiceStartup(ctx context.Context, _ application.ServiceOptio
 	for _, r := range cfg.Ranges {
 		s.start(r)
 	}
+	if s.Updates != nil {
+		go s.watchUpdates(ctx)
+	}
 	return nil
 }
 
@@ -142,7 +149,7 @@ func (s *Service) start(r Range) {
 	go a.Run(ctx)
 }
 
-// State returns the ranges with what their agents last saw, and the pairing in progress.
+// State returns the ranges with what their agents last saw, the pairing in progress and a newer release.
 func (s *Service) State() State {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -154,6 +161,14 @@ func (s *Service) State() State {
 	if s.pairing != nil {
 		p := s.pairing.PairingState
 		st.Pairing = &p
+	}
+	if s.update != nil {
+		u := *s.update
+		switch us := s.Updates.State(); us {
+		case updater.StateDownloading, updater.StateVerifying, updater.StateInstalling, updater.StateReady:
+			u.State = string(us)
+		}
+		st.Update = &u
 	}
 	return st
 }
@@ -291,7 +306,7 @@ func (s *Service) SetAutostart(on bool) error {
 	return s.Autostart.Disable()
 }
 
-// SetMenuLabels sets the labels of the tray menu in the language of the window.
-func (s *Service) SetMenuLabels(open, quit string) {
-	s.OnMenuLabels(open, quit)
+// SetMenuLabels sets the labels of the tray menu in the language of the window; update contains {version}.
+func (s *Service) SetMenuLabels(open, quit, update string) {
+	s.OnMenuLabels(open, quit, update)
 }

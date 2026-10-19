@@ -86,6 +86,7 @@ jobs:
           path: |
             bin/*.exe
             bin/*.dmg
+            bin/*.app.zip
             bin/*.deb
             bin/*.rpm
           if-no-files-found: error

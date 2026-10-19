@@ -9,9 +9,12 @@
 	import Logo from '$lib/Logo.svelte';
 	import Printers from '$lib/Printers.svelte';
 	import RangeCard from '$lib/RangeCard.svelte';
+	import UpdateBanner from '$lib/UpdateBanner.svelte';
 
 	setLinguiContext(i18n);
-	let state = $state<State>({ ranges: [], pairing: null });
+	let state = $state<State>({ ranges: [], pairing: null, update: null });
+	// Stays in the tray label; the Go side puts the version in.
+	const version = '{version}';
 	const ranges = $derived(state.ranges ?? []);
 
 	/** Fetches the ranges and the pairing from the Go side. */
@@ -19,7 +22,7 @@
 		state = await Service.State();
 	}
 	onMount(() => {
-		Service.SetMenuLabels($t`Open`, $t`Quit`);
+		Service.SetMenuLabels($t`Open`, $t`Quit`, $t`Update to ${version}`);
 		refresh();
 		const timer = setInterval(refresh, 2000);
 		return () => clearInterval(timer);
@@ -31,6 +34,9 @@
 		<Logo class="size-8 text-brand-900 dark:text-amber-400" />
 		<h1 class="text-xl font-semibold tracking-tight">Standblatt Print Agent</h1>
 	</header>
+	{#if state.update}
+		<UpdateBanner update={state.update} />
+	{/if}
 	{#each ranges as range (range.id)}
 		<RangeCard {range} />
 	{/each}

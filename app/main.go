@@ -69,6 +69,9 @@ func main() {
 		},
 	})
 	svc.Autostart = app.Autostart
+	if err := setupUpdates(app, svc); err != nil {
+		logger.Error("in-app updates", "err", err)
+	}
 	window = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:  "Standblatt Print Agent",
 		Width:  720,

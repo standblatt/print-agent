@@ -137,7 +137,25 @@ msgstr "This computer does not print for any range yet. Connect it with a range 
 msgid "This computer was removed from the range in Standblatt. Remove the range under Advanced and connect it again."
 msgstr "This computer was removed from the range in Standblatt. Remove the range under Advanced and connect it again."
 
+#: src/lib/UpdateBanner.svelte
+msgid "Update now"
+msgstr "Update now"
+
+#: src/App.svelte
+msgid "Update to {version}"
+msgstr "Update to {version}"
+
+#. placeholder {0}: update.version
+#: src/lib/UpdateBanner.svelte
+msgid "Updating to version {0}… The app restarts by itself."
+msgstr "Updating to version {0}… The app restarts by itself."
+
 #. placeholder {0}: settings?.version ?? ''
 #: src/lib/Advanced.svelte
 msgid "Version {0}"
 msgstr "Version {0}"
+
+#. placeholder {0}: update.version
+#: src/lib/UpdateBanner.svelte
+msgid "Version {0} is available."
+msgstr "Version {0} is available."

@@ -137,7 +137,25 @@ msgstr "Questo computer non stampa ancora per nessuno stand di tiro. Collegalo a
 msgid "This computer was removed from the range in Standblatt. Remove the range under Advanced and connect it again."
 msgstr "Questo computer è stato rimosso dallo stand di tiro in Standblatt. Rimuovi lo stand di tiro in «Avanzate» e collegalo di nuovo."
 
+#: src/lib/UpdateBanner.svelte
+msgid "Update now"
+msgstr "Aggiorna ora"
+
+#: src/App.svelte
+msgid "Update to {version}"
+msgstr "Aggiorna a {version}"
+
+#. placeholder {0}: update.version
+#: src/lib/UpdateBanner.svelte
+msgid "Updating to version {0}… The app restarts by itself."
+msgstr "Aggiornamento alla versione {0}… L’app si riavvia da sola."
+
 #. placeholder {0}: settings?.version ?? ''
 #: src/lib/Advanced.svelte
 msgid "Version {0}"
 msgstr "Versione {0}"
+
+#. placeholder {0}: update.version
+#: src/lib/UpdateBanner.svelte
+msgid "Version {0} is available."
+msgstr "La versione {0} è disponibile."
