@@ -20,7 +20,7 @@
 		"@tsconfig/svelte": "^5.0.8",
 		"@wailsio/runtime": "3.0.0-beta.32",
 		"bits-ui": "^2.19.5",
-		"cn": "^0.4.0",
+		"cn": "^0.5.0",
 		"lingui-for-svelte": "^0.7.1",
 		"shadcn-svelte": "^1.7.0",
 		"svelte": "^5.57.1",
