@@ -142,8 +142,8 @@ jobs:
           path: bin/
           retention-days: 7
 
-  # The agent against a real server image; catches protocol breaks from either side. SERVER_VERSION is raised by hand
-  # together with protocol changes.
+  # The agent against a real server image; catches protocol breaks from either side. The server version is the tag in
+  # testdata/contract/Dockerfile, which Dependabot raises after each server release.
   contract:
     runs-on: ubuntu-latest
     needs: build
@@ -157,10 +157,10 @@ jobs:
         ports: ["5432:5432"]
         options: --health-cmd "pg_isready -U standblatt" --health-interval 2s --health-retries 30
     env:
-      SERVER_VERSION: v0.21.0
       DATABASE_URL: postgres://standblatt:standblatt@localhost:5432/standblatt
     steps:
       - uses: actions/checkout@v7
+      - run: echo "SERVER_VERSION=$(sed -n 's/^FROM .*://p' testdata/contract/Dockerfile)" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v8
         with:
           name: binaries

@@ -37,6 +37,12 @@ updates:
       - dependency-name: typescript
         versions: [">= 7"]
 
+  # The server tag of the contract test: a pull request after each server release runs the contract test against it.
+  - package-ecosystem: docker
+    directory: /testdata/contract
+    schedule:
+      interval: daily
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

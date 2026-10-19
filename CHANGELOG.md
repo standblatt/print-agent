@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The contract test runs against Standblatt 0.22.2; Dependabot raises the server version after each server release, so the contract test of its pull request checks the protocol against the new server (by @HB9HIL)
+
 ## [0.2.1] - 2026-10-19
 
 ### Fixed

@@ -1,6 +1,6 @@
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null)
-# The server image of the contract test; the CI workflow is the only place it is set.
-SERVER_VERSION := $(shell sed -n 's/^ *SERVER_VERSION: //p' .github/workflows/ci.yml)
+# The server image of the contract test, from its tag in testdata/contract/Dockerfile (raised by Dependabot).
+SERVER_VERSION := $(shell sed -n 's/^FROM .*://p' testdata/contract/Dockerfile)
 CONTRACT := standblatt-contract
 
 GOOS := $(shell go env GOOS)
