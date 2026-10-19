@@ -11,7 +11,7 @@ MAC_APP := Standblatt Print Agent.app
 PKG_VERSION := $(or $(shell echo $(VERSION) | sed -n 's/^v\([0-9][0-9.]*\)$$/\1/p'),0.0.0)
 
 # All builds go to bin/.
-.PHONY: app app-mac app-dmg app-linux app-linux-packages app-windows app-headless app-deps app-frontend dev prepare test clean
+.PHONY: app app-mac app-dmg app-linux app-linux-packages app-windows app-installer app-headless app-deps app-frontend dev prepare test clean
 
 # The desktop app for the operating system of this computer.
 app: app-$(subst darwin,mac,$(GOOS))
@@ -61,6 +61,13 @@ app-windows: app-frontend
 		-manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_amd64.syso
 	cd app && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags production -trimpath -ldflags="$(APP_LDFLAGS) -H windowsgui" \
 		-o ../bin/standblatt-print-agent-app-windows-amd64.exe .; s=$$?; rm -f wails_windows_amd64.syso; exit $$s
+
+# The Windows installer: per user without admin rights, start menu and desktop shortcut, autostart (needs makensis).
+app-installer: app-windows
+	cd app && GOOS= GOARCH= ../bin/wails3 generate webview2bootstrapper -dir ../bin/webview2
+	makensis -WX -DVERSION=$(PKG_VERSION) -DEXE=$(CURDIR)/bin/standblatt-print-agent-app-windows-amd64.exe \
+		-DBOOTSTRAPPER=$(CURDIR)/bin/webview2/MicrosoftEdgeWebview2Setup.exe \
+		-DOUT=$(CURDIR)/bin/Standblatt-Print-Agent-Setup.exe app/build/windows/installer.nsi
 
 # The headless agent (CUPS) for this computer and the Linux release binaries.
 app-headless:

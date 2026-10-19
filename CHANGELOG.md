@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Windows installer `Standblatt-Print-Agent-Setup.exe` in English, German, French and Italian: installs per user without admin rights, with start menu and desktop shortcut and start with Windows, installs the WebView2 runtime if missing and over a running app; the uninstaller keeps the settings (by @HB9HIL)
+
 ## [0.1.0] - 2026-10-19
 
 ### Added

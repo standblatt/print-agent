@@ -39,15 +39,16 @@ jobs:
       - run: go tool staticcheck ./...
       - run: go test ./internal/agent ./internal/winspool
 
-  # The desktop app for every system: Windows cross-compiled without CGO (even for the wails3 tool, which needs GTK
-  # on Linux otherwise), the Mac app as a disk image built with the macOS SDK, the Linux app as .deb and .rpm built
-  # against GTK 4 and WebKitGTK 6.0. Every push keeps them as artifacts; tags release them.
+  # The desktop app for every system: Windows cross-compiled without CGO with its installer (NSIS), the Mac app as a
+  # disk image built with the macOS SDK, the Linux app as .deb and .rpm built against GTK 4 and WebKitGTK 6.0. Every
+  # push keeps them as artifacts; tags release them.
   app:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { name: windows-amd64, os: ubuntu-latest, target: app-windows, cgo: "0" }
+          # No CGO: the wails3 tool needs GTK on Linux otherwise.
+          - { name: windows-amd64, os: ubuntu-latest, target: app-installer, cgo: "0" }
           - { name: darwin-arm64, os: macos-latest, target: app-dmg, goarch: arm64 }
           - { name: darwin-amd64, os: macos-latest, target: app-dmg, goarch: amd64 }
           # Pinned: packages built on a newer Ubuntu need its newer glibc.
@@ -65,6 +66,8 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: app/frontend/package-lock.json
+      - if: matrix.target == 'app-installer'
+        run: sudo apt-get update && sudo apt-get install -y nsis
       - if: matrix.target == 'app-linux-packages'
         run: |
           sudo apt-get update
@@ -74,7 +77,7 @@ jobs:
           CGO_ENABLED: ${{ matrix.cgo }}
           GOARCH: ${{ matrix.goarch }}
         run: make ${{ matrix.target }} VERSION=$([ "$GITHUB_REF_TYPE" = tag ] && echo "$GITHUB_REF_NAME" || echo "${GITHUB_SHA::7}")
-      - if: matrix.target == 'app-windows'
+      - if: matrix.target == 'app-installer'
         run: npm run check
         working-directory: app/frontend
       - uses: actions/upload-artifact@v7
