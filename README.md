@@ -9,8 +9,9 @@ options, waits for print jobs (long polling) and prints them. No port needs to b
 *Standblatt Print Agent* for the computer next to the printers, from the
 [latest release](https://github.com/standblatt/print-agent/releases/latest):
 
-- Windows: `standblatt-print-agent-app-windows-amd64.exe`. It is not signed yet: Windows SmartScreen asks once,
-  *More info → Run anyway*.
+- Windows: `Standblatt-Print-Agent-Setup.exe` installs the app for the current user without admin rights, with a
+  start menu and desktop shortcut, and starts it with Windows. It is not signed yet: Windows SmartScreen asks once,
+  *More info → Run anyway*. `standblatt-print-agent-app-windows-amd64.exe` is the same app without installer.
 - macOS: `standblatt-print-agent-app-darwin-arm64.dmg` (Apple silicon) or `-amd64.dmg` (Intel); drag the app into
   *Applications*. It is not signed yet: open it the first time with *right click → Open*.
 - Linux: `standblatt-print-agent-app_<version>_<arch>.deb` or the `.rpm`.
@@ -74,6 +75,7 @@ checksums of all files.
 make app-headless # bin/: the headless agent for this computer and the Linux release binaries
 make app          # bin/: the desktop app for this computer's operating system (needs Node.js)
 make app-windows  # bin/: the desktop app for Windows, also cross-compiled from macOS or Linux
+make app-installer # bin/: that app with its Windows installer (needs makensis)
 make app-mac      # bin/: the desktop app for this Mac as a bundle (signed ad hoc, runs only here)
 make app-dmg      # bin/: that bundle as a disk image (GOARCH=amd64 for Intel Macs)
 make app-linux    # bin/: the desktop app for Linux; on Linux with the GTK 4 and WebKitGTK 6.0 dev packages
