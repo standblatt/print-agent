@@ -47,6 +47,11 @@ func main() {
 	log.SetOutput(out)
 	hostname, _ := os.Hostname()
 	logger.Info("print agent started", "version", version)
+	if v, ok := releaseVersion(version); ok {
+		if err := markInstalledVersion(v); err != nil {
+			logger.Warn("version in Settings → Apps", "err", err)
+		}
+	}
 
 	svc := &Service{
 		ConfigPath: filepath.Join(configDir, "Standblatt", "print-agent.json"),

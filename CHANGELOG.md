@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- After an in-app update Windows shows the new version under *Settings → Apps*: the installed app updates its entry at start (by @HB9HIL)
+
 ## [0.2.0] - 2026-10-19
 
 ### Added
