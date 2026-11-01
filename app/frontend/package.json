@@ -10,25 +10,25 @@
 	},
 	"devDependencies": {
 		"@fontsource-variable/inter": "^5.3.0",
-		"@lingui/cli": "^6.9.1",
-		"@lingui/conf": "^6.9.1",
+		"@lingui/cli": "^6.11.0",
+		"@lingui/conf": "^6.11.0",
 		"@lingui/core": "^6.9.1",
-		"@lingui/format-po-gettext": "^6.9.1",
-		"@lucide/svelte": "^1.59.0",
+		"@lingui/format-po-gettext": "^6.11.0",
+		"@lucide/svelte": "^1.64.0",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
 		"@tailwindcss/vite": "^4.3.3",
 		"@tsconfig/svelte": "^5.0.8",
 		"@wailsio/runtime": "3.0.0-beta.32",
-		"bits-ui": "^2.19.5",
+		"bits-ui": "^2.20.2",
 		"cn": "^0.5.0",
 		"lingui-for-svelte": "^0.7.1",
-		"shadcn-svelte": "^1.7.0",
-		"svelte": "^5.57.1",
+		"shadcn-svelte": "^1.7.2",
+		"svelte": "^5.57.3",
 		"svelte-check": "^4.6.0",
 		"tailwind-variants": "^3.3.1",
 		"tailwindcss": "^4.3.3",
 		"typescript": "^6.0.3",
 		"unplugin-lingui-macro": "^0.4.1",
-		"vite": "^8.3.0"
+		"vite": "^8.3.5"
 	}
 }
